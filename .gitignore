@@ -1,5 +1,8 @@
 # Dependencies
 /node_modules
+cloudflare-agent/node_modules
+cloudflare-agent/dist
+.playwright-mcp/
 /.pnp
 .pnp.js
 yarn.lock

@@ -1,1 +1,0 @@
-This folder contains the built output assets for the worker "enterprise-agent" generated at 2026-03-27T17:14:54.516Z.
