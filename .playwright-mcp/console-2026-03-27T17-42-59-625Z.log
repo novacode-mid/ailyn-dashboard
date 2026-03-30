@@ -1,0 +1,2 @@
+[   13693ms] [ERROR] Access to fetch at 'https://enterprise-agent.novacodepro.workers.dev/api/chat/wallet' from origin 'http://localhost:3001' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:3001/wallet-chat/9aa5ef3d-bfe9-4064-a836-35488b2b397d:0
+[   13695ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://enterprise-agent.novacodepro.workers.dev/api/chat/wallet:0

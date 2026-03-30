@@ -1,0 +1,2 @@
+[    5296ms] [ERROR] Access to fetch at 'https://enterprise-agent.novacodepro.workers.dev/api/admin/system/status' from origin 'http://localhost:3001' has been blocked by CORS policy: Request header field x-cf-token is not allowed by Access-Control-Allow-Headers in preflight response. @ http://localhost:3001/admin/agent-dashboard:0
+[    5296ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://enterprise-agent.novacodepro.workers.dev/api/admin/system/status:0

@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ailyn-primary: #378ADD;
+  --ailyn-primary-dark: #185FA5;
+}

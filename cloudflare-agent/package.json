@@ -1,0 +1,18 @@
+{
+  "name": "enterprise-agent",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "wrangler deploy --dry-run",
+    "db:migrate": "wrangler d1 migrations apply enterprise-agent-db",
+    "db:migrate:local": "wrangler d1 migrations apply enterprise-agent-db --local",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241205.0",
+    "typescript": "^5.7.0",
+    "wrangler": "^4.0.0"
+  }
+}

@@ -1,0 +1,1121 @@
+[     705ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/wallet-chat/9aa5ef3d-bfe9-4064-a836-35488b2b397d:0
+[    1014ms] Error: ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.scandir/out/adapters/fs.js:4:12
+Module not found: Can't resolve 'fs'
+  2 | Object.defineProperty(exports, "__esModule", { value: true });
+  3 | exports.createFileSystemAdapter = exports.FILE_SYSTEM_ADAPTER = void 0;
+> 4 | const fs = require("fs");
+    |            ^^^^^^^^^^^^^
+  5 | exports.FILE_SYSTEM_ADAPTER = {
+  6 |     lstat: fs.lstat,
+  7 |     stat: fs.stat,
+
+
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.scandir/out/adapters/fs.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.scandir/out/settings.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.scandir/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.walk/out/settings.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.walk/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/readers/sync.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/providers/sync.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/content.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at Error: ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/ (nodelib/fs.scandir/out/adapters/fs.js:4:12)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at Object.getCompilationErrors (file://C:\Users\IngPe\OneDrive\Documentos\Saas Factory\Proyectos Software\OpenClawAsistente\node_modules\next\dist\server\dev\hot-reloader-turbopack.js:1189:59)
+    at DevBundlerService.getCompilationError (file://C:\Users\IngPe\OneDrive\Documentos\Saas Factory\Proyectos Software\OpenClawAsistente\node_modules\next\dist\server\lib\dev-bundler-service.js:44:55)
+    at DevServer.getCompilationError (file://C:\Users\IngPe\OneDrive\Documentos\Saas Factory\Proyectos Software\OpenClawAsistente\node_modules\next\dist\server\dev\next-dev-server.js:719:42)
+    at DevServer.findPageComponents (file://C:\Users\IngPe\OneDrive\Documentos\Saas Factory\Proyectos Software\OpenClawAsistente\node_modules\next\dist\server\dev\next-dev-server.js:689:43)
+    at async DevServer.renderErrorToResponseImpl (file://C:\Users\IngPe\OneDrive\Documentos\Saas Factory\Proyectos Software\OpenClawAsistente\node_modules\next\dist\server\base-server.js:1745:26)
+[    1039ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.scandir/out/adapters/fs.js:4:12
+Module not found: Can't resolve 'fs'
+  2 | Object.defineProperty(exports, "__esModule", { value: true });
+  3 | exports.createFileSystemAdapter = exports.FILE_SYSTEM_ADAPTER = void 0;
+> 4 | const fs = require("fs");
+    |            ^^^^^^^^^^^^^
+  5 | exports.FILE_SYSTEM_ADAPTER = {
+  6 |     lstat: fs.lstat,
+  7 |     stat: fs.stat,
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.scandir/out/adapters/fs.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.scandir/out/settings.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.scandir/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.walk/out/settings.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.walk/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/readers/sync.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/providers/sync.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/content.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1042ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.stat/out/adapters/fs.js:4:12
+Module not found: Can't resolve 'fs'
+  2 | Object.defineProperty(exports, "__esModule", { value: true });
+  3 | exports.createFileSystemAdapter = exports.FILE_SYSTEM_ADAPTER = void 0;
+> 4 | const fs = require("fs");
+    |            ^^^^^^^^^^^^^
+  5 | exports.FILE_SYSTEM_ADAPTER = {
+  6 |     lstat: fs.lstat,
+  7 |     stat: fs.stat,
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.stat/out/adapters/fs.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.stat/out/settings.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.stat/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/readers/stream.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/providers/stream.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/content.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1043ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js:1:110659
+Module not found: Can't resolve 'fs'
+> 1 | ..."use strict";module.exports=require("fs")},module:module=>{"use stric...
+    |                                ^^^^^^^^^^^^^
+  2 | ...
+  3 | ...
+  4 | ...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1043ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js:1:209925
+Module not found: Can't resolve 'fs'
+> 1 | ...nal_node_fs_namespaceObject=require("fs");Math.floor,String.fromCharC...
+    |                                ^^^^^^^^^^^^^
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1043ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/corePlugins.js:19:52
+Module not found: Can't resolve 'fs'
+  17 | ...
+  18 | ...
+> 19 | ...*/ _interop_require_default(require("fs"));
+     |                                ^^^^^^^^^^^^^
+  20 | ...__*/ _interop_require_wildcard(require("path"));
+  21 | ...URE__*/ _interop_require_default(require("postcss"));
+  22 | ...gin = /*#__PURE__*/ _interop_require_default(require("./util/createU...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/corePlugins.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupContextUtils.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/processTailwindFeatures.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1044ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/content.js:23:52
+Module not found: Can't resolve 'fs'
+  21 | ...
+  22 | ...
+> 23 | ...*/ _interop_require_default(require("fs"));
+     |                                ^^^^^^^^^^^^^
+  24 | ...__*/ _interop_require_default(require("path"));
+  25 | ...RE__*/ _interop_require_default(require("is-glob"));
+  26 | ...PURE__*/ _interop_require_default(require("fast-glob"));
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/content.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1044ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/expandTailwindAtRules.js:11:52
+Module not found: Can't resolve 'fs'
+   9 | ...
+  10 | ...
+> 11 | ...*/ _interop_require_default(require("fs"));
+     |                                ^^^^^^^^^^^^^
+  12 | ...PURE__*/ _interop_require_default(require("@alloc/quick-lru"));
+  13 | ...#__PURE__*/ _interop_require_wildcard(require("./sharedState"));
+  14 | ...require("./generateRules");
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/expandTailwindAtRules.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/processTailwindFeatures.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1045ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/findAtConfigPath.js:11:52
+Module not found: Can't resolve 'fs'
+   9 |     }
+  10 | });
+> 11 | const _fs = /*#__PURE__*/ _interop_require_default(require("fs"));
+     |                                                    ^^^^^^^^^^^^^
+  12 | const _path = /*#__PURE__*/ _interop_require_default(require("path"));
+  13 | function _interop_require_default(obj) {
+  14 |     return obj && obj.__esModule ? obj : {
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/findAtConfigPath.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1046ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/getModuleDependencies.js:11:52
+Module not found: Can't resolve 'fs'
+   9 |     }
+  10 | });
+> 11 | const _fs = /*#__PURE__*/ _interop_require_default(require("fs"));
+     |                                                    ^^^^^^^^^^^^^
+  12 | const _path = /*#__PURE__*/ _interop_require_default(require("path"));
+  13 | function _interop_require_default(obj) {
+  14 |     return obj && obj.__esModule ? obj : {
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/getModuleDependencies.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1046ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupContextUtils.js:31:52
+Module not found: Can't resolve 'fs'
+  29 | ...
+  30 | ...
+> 31 | ...*/ _interop_require_default(require("fs"));
+     |                                ^^^^^^^^^^^^^
+  32 | ..._*/ _interop_require_default(require("url"));
+  33 | ...URE__*/ _interop_require_default(require("postcss"));
+  34 | ..._*/ _interop_require_default(require("dlv"));
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupContextUtils.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/processTailwindFeatures.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1047ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js:16:52
+Module not found: Can't resolve 'fs'
+  14 | ...
+  15 | ...
+> 16 | ...*/ _interop_require_default(require("fs"));
+     |                                ^^^^^^^^^^^^^
+  17 | ...PURE__*/ _interop_require_default(require("@alloc/quick-lru"));
+  18 | ...__PURE__*/ _interop_require_default(require("../util/hashConfig"));
+  19 | .../*#__PURE__*/ _interop_require_default(require("../public/resolve-co...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1047ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/util/resolveConfigPath.js:19:52
+Module not found: Can't resolve 'fs'
+  17 |     }
+  18 | });
+> 19 | const _fs = /*#__PURE__*/ _interop_require_default(require("fs"));
+     |                                                    ^^^^^^^^^^^^^
+  20 | const _path = /*#__PURE__*/ _interop_require_default(require("path"));
+  21 | function _interop_require_default(obj) {
+  22 |     return obj && obj.__esModule ? obj : {
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/util/resolveConfigPath.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1047ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/settings.js:4:12
+Module not found: Can't resolve 'fs'
+  2 | Object.defineProperty(exports, "__esModule", { value: true });
+  3 | exports.DEFAULT_FILE_SYSTEM_ADAPTER = void 0;
+> 4 | const fs = require("fs");
+    |            ^^^^^^^^^^^^^
+  5 | const os = require("os");
+  6 | /**
+  7 |  * The `os.cpus` method can return zero. We expect the number of cores t...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/settings.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/content.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1048ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js:1:110718
+Module not found: Can't resolve 'module'
+> 1 | ...se strict";module.exports=require("module")},os:module=>{"use strict"...
+    |                              ^^^^^^^^^^^^^^^^^
+  2 | ...
+  3 | ...
+  4 | ...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1048ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js:1:209874
+Module not found: Can't resolve 'module'
+> 1 | ...de_module_namespaceObject=require("module"),external_node_fs_namespac...
+    |                              ^^^^^^^^^^^^^^^^^
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1048ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js:1:62357
+Module not found: Can't resolve 'perf_hooks'
+> 1 | ...f_hooks_namespaceObject=require("perf_hooks"),external_os_namespaceOb...
+    |                            ^^^^^^^^^^^^^^^^^^^^^
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1049ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js:1:111129
+Module not found: Can't resolve 'v8'
+> 1 | ..."use strict";module.exports=require("v8")},"./node_modules/.pnpm/@bab...
+    |                                ^^^^^^^^^^^^^
+  2 | ...
+  3 | ...
+  4 | ...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1049ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js:1:211244
+Module not found: Can't resolve 'v8'
+> 1 | ...nal_node_v8_namespaceObject=require("v8"),external_node_util_namespac...
+    |                                ^^^^^^^^^^^^^
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1049ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.scandir/out/adapters/fs.js:4:12
+Module not found: Can't resolve 'fs'
+  2 | Object.defineProperty(exports, "__esModule", { value: true });
+  3 | exports.createFileSystemAdapter = exports.FILE_SYSTEM_ADAPTER = void 0;
+> 4 | const fs = require("fs");
+    |            ^^^^^^^^^^^^^
+  5 | exports.FILE_SYSTEM_ADAPTER = {
+  6 |     lstat: fs.lstat,
+  7 |     stat: fs.stat,
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.scandir/out/adapters/fs.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.scandir/out/settings.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.scandir/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.walk/out/settings.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.walk/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/readers/sync.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/providers/sync.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/content.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1049ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.stat/out/adapters/fs.js:4:12
+Module not found: Can't resolve 'fs'
+  2 | Object.defineProperty(exports, "__esModule", { value: true });
+  3 | exports.createFileSystemAdapter = exports.FILE_SYSTEM_ADAPTER = void 0;
+> 4 | const fs = require("fs");
+    |            ^^^^^^^^^^^^^
+  5 | exports.FILE_SYSTEM_ADAPTER = {
+  6 |     lstat: fs.lstat,
+  7 |     stat: fs.stat,
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.stat/out/adapters/fs.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.stat/out/settings.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.stat/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/readers/stream.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/providers/stream.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/content.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1050ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js:1:110659
+Module not found: Can't resolve 'fs'
+> 1 | ..."use strict";module.exports=require("fs")},module:module=>{"use stric...
+    |                                ^^^^^^^^^^^^^
+  2 | ...
+  3 | ...
+  4 | ...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1050ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js:1:209925
+Module not found: Can't resolve 'fs'
+> 1 | ...nal_node_fs_namespaceObject=require("fs");Math.floor,String.fromCharC...
+    |                                ^^^^^^^^^^^^^
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1050ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/corePlugins.js:19:52
+Module not found: Can't resolve 'fs'
+  17 | ...
+  18 | ...
+> 19 | ...*/ _interop_require_default(require("fs"));
+     |                                ^^^^^^^^^^^^^
+  20 | ...__*/ _interop_require_wildcard(require("path"));
+  21 | ...URE__*/ _interop_require_default(require("postcss"));
+  22 | ...gin = /*#__PURE__*/ _interop_require_default(require("./util/createU...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/corePlugins.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupContextUtils.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/processTailwindFeatures.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1051ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/content.js:23:52
+Module not found: Can't resolve 'fs'
+  21 | ...
+  22 | ...
+> 23 | ...*/ _interop_require_default(require("fs"));
+     |                                ^^^^^^^^^^^^^
+  24 | ...__*/ _interop_require_default(require("path"));
+  25 | ...RE__*/ _interop_require_default(require("is-glob"));
+  26 | ...PURE__*/ _interop_require_default(require("fast-glob"));
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/content.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1051ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/expandTailwindAtRules.js:11:52
+Module not found: Can't resolve 'fs'
+   9 | ...
+  10 | ...
+> 11 | ...*/ _interop_require_default(require("fs"));
+     |                                ^^^^^^^^^^^^^
+  12 | ...PURE__*/ _interop_require_default(require("@alloc/quick-lru"));
+  13 | ...#__PURE__*/ _interop_require_wildcard(require("./sharedState"));
+  14 | ...require("./generateRules");
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/expandTailwindAtRules.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/processTailwindFeatures.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1051ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/findAtConfigPath.js:11:52
+Module not found: Can't resolve 'fs'
+   9 |     }
+  10 | });
+> 11 | const _fs = /*#__PURE__*/ _interop_require_default(require("fs"));
+     |                                                    ^^^^^^^^^^^^^
+  12 | const _path = /*#__PURE__*/ _interop_require_default(require("path"));
+  13 | function _interop_require_default(obj) {
+  14 |     return obj && obj.__esModule ? obj : {
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/findAtConfigPath.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1051ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/getModuleDependencies.js:11:52
+Module not found: Can't resolve 'fs'
+   9 |     }
+  10 | });
+> 11 | const _fs = /*#__PURE__*/ _interop_require_default(require("fs"));
+     |                                                    ^^^^^^^^^^^^^
+  12 | const _path = /*#__PURE__*/ _interop_require_default(require("path"));
+  13 | function _interop_require_default(obj) {
+  14 |     return obj && obj.__esModule ? obj : {
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/getModuleDependencies.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1052ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupContextUtils.js:31:52
+Module not found: Can't resolve 'fs'
+  29 | ...
+  30 | ...
+> 31 | ...*/ _interop_require_default(require("fs"));
+     |                                ^^^^^^^^^^^^^
+  32 | ..._*/ _interop_require_default(require("url"));
+  33 | ...URE__*/ _interop_require_default(require("postcss"));
+  34 | ..._*/ _interop_require_default(require("dlv"));
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupContextUtils.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/processTailwindFeatures.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1052ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js:16:52
+Module not found: Can't resolve 'fs'
+  14 | ...
+  15 | ...
+> 16 | ...*/ _interop_require_default(require("fs"));
+     |                                ^^^^^^^^^^^^^
+  17 | ...PURE__*/ _interop_require_default(require("@alloc/quick-lru"));
+  18 | ...__PURE__*/ _interop_require_default(require("../util/hashConfig"));
+  19 | .../*#__PURE__*/ _interop_require_default(require("../public/resolve-co...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1052ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/util/resolveConfigPath.js:19:52
+Module not found: Can't resolve 'fs'
+  17 |     }
+  18 | });
+> 19 | const _fs = /*#__PURE__*/ _interop_require_default(require("fs"));
+     |                                                    ^^^^^^^^^^^^^
+  20 | const _path = /*#__PURE__*/ _interop_require_default(require("path"));
+  21 | function _interop_require_default(obj) {
+  22 |     return obj && obj.__esModule ? obj : {
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/util/resolveConfigPath.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1053ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/settings.js:4:12
+Module not found: Can't resolve 'fs'
+  2 | Object.defineProperty(exports, "__esModule", { value: true });
+  3 | exports.DEFAULT_FILE_SYSTEM_ADAPTER = void 0;
+> 4 | const fs = require("fs");
+    |            ^^^^^^^^^^^^^
+  5 | const os = require("os");
+  6 | /**
+  7 |  * The `os.cpus` method can return zero. We expect the number of cores t...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/settings.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/content.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1053ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js:1:110718
+Module not found: Can't resolve 'module'
+> 1 | ...se strict";module.exports=require("module")},os:module=>{"use strict"...
+    |                              ^^^^^^^^^^^^^^^^^
+  2 | ...
+  3 | ...
+  4 | ...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1053ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js:1:209874
+Module not found: Can't resolve 'module'
+> 1 | ...de_module_namespaceObject=require("module"),external_node_fs_namespac...
+    |                              ^^^^^^^^^^^^^^^^^
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1053ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js:1:62357
+Module not found: Can't resolve 'perf_hooks'
+> 1 | ...f_hooks_namespaceObject=require("perf_hooks"),external_os_namespaceOb...
+    |                            ^^^^^^^^^^^^^^^^^^^^^
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1054ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js:1:111129
+Module not found: Can't resolve 'v8'
+> 1 | ..."use strict";module.exports=require("v8")},"./node_modules/.pnpm/@bab...
+    |                                ^^^^^^^^^^^^^
+  2 | ...
+  3 | ...
+  4 | ...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1054ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js:1:211244
+Module not found: Can't resolve 'v8'
+> 1 | ...nal_node_v8_namespaceObject=require("v8"),external_node_util_namespac...
+    |                                ^^^^^^^^^^^^^
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1068ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/favicon.ico:0
+[    1128ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.scandir/out/adapters/fs.js:4:12
+Module not found: Can't resolve 'fs'
+  2 | Object.defineProperty(exports, "__esModule", { value: true });
+  3 | exports.createFileSystemAdapter = exports.FILE_SYSTEM_ADAPTER = void 0;
+> 4 | const fs = require("fs");
+    |            ^^^^^^^^^^^^^
+  5 | exports.FILE_SYSTEM_ADAPTER = {
+  6 |     lstat: fs.lstat,
+  7 |     stat: fs.stat,
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.scandir/out/adapters/fs.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.scandir/out/settings.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.scandir/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.walk/out/settings.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.walk/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/readers/sync.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/providers/sync.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/content.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1128ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.stat/out/adapters/fs.js:4:12
+Module not found: Can't resolve 'fs'
+  2 | Object.defineProperty(exports, "__esModule", { value: true });
+  3 | exports.createFileSystemAdapter = exports.FILE_SYSTEM_ADAPTER = void 0;
+> 4 | const fs = require("fs");
+    |            ^^^^^^^^^^^^^
+  5 | exports.FILE_SYSTEM_ADAPTER = {
+  6 |     lstat: fs.lstat,
+  7 |     stat: fs.stat,
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.stat/out/adapters/fs.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.stat/out/settings.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/@nodelib/fs.stat/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/readers/stream.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/providers/stream.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/content.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1128ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js:1:110659
+Module not found: Can't resolve 'fs'
+> 1 | ..."use strict";module.exports=require("fs")},module:module=>{"use stric...
+    |                                ^^^^^^^^^^^^^
+  2 | ...
+  3 | ...
+  4 | ...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1128ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js:1:209925
+Module not found: Can't resolve 'fs'
+> 1 | ...nal_node_fs_namespaceObject=require("fs");Math.floor,String.fromCharC...
+    |                                ^^^^^^^^^^^^^
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1128ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/corePlugins.js:19:52
+Module not found: Can't resolve 'fs'
+  17 | ...
+  18 | ...
+> 19 | ...*/ _interop_require_default(require("fs"));
+     |                                ^^^^^^^^^^^^^
+  20 | ...__*/ _interop_require_wildcard(require("path"));
+  21 | ...URE__*/ _interop_require_default(require("postcss"));
+  22 | ...gin = /*#__PURE__*/ _interop_require_default(require("./util/createU...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/corePlugins.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupContextUtils.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/processTailwindFeatures.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1129ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/content.js:23:52
+Module not found: Can't resolve 'fs'
+  21 | ...
+  22 | ...
+> 23 | ...*/ _interop_require_default(require("fs"));
+     |                                ^^^^^^^^^^^^^
+  24 | ...__*/ _interop_require_default(require("path"));
+  25 | ...RE__*/ _interop_require_default(require("is-glob"));
+  26 | ...PURE__*/ _interop_require_default(require("fast-glob"));
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/content.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1129ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/expandTailwindAtRules.js:11:52
+Module not found: Can't resolve 'fs'
+   9 | ...
+  10 | ...
+> 11 | ...*/ _interop_require_default(require("fs"));
+     |                                ^^^^^^^^^^^^^
+  12 | ...PURE__*/ _interop_require_default(require("@alloc/quick-lru"));
+  13 | ...#__PURE__*/ _interop_require_wildcard(require("./sharedState"));
+  14 | ...require("./generateRules");
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/expandTailwindAtRules.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/processTailwindFeatures.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1129ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/findAtConfigPath.js:11:52
+Module not found: Can't resolve 'fs'
+   9 |     }
+  10 | });
+> 11 | const _fs = /*#__PURE__*/ _interop_require_default(require("fs"));
+     |                                                    ^^^^^^^^^^^^^
+  12 | const _path = /*#__PURE__*/ _interop_require_default(require("path"));
+  13 | function _interop_require_default(obj) {
+  14 |     return obj && obj.__esModule ? obj : {
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/findAtConfigPath.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1129ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/getModuleDependencies.js:11:52
+Module not found: Can't resolve 'fs'
+   9 |     }
+  10 | });
+> 11 | const _fs = /*#__PURE__*/ _interop_require_default(require("fs"));
+     |                                                    ^^^^^^^^^^^^^
+  12 | const _path = /*#__PURE__*/ _interop_require_default(require("path"));
+  13 | function _interop_require_default(obj) {
+  14 |     return obj && obj.__esModule ? obj : {
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/getModuleDependencies.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1129ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupContextUtils.js:31:52
+Module not found: Can't resolve 'fs'
+  29 | ...
+  30 | ...
+> 31 | ...*/ _interop_require_default(require("fs"));
+     |                                ^^^^^^^^^^^^^
+  32 | ..._*/ _interop_require_default(require("url"));
+  33 | ...URE__*/ _interop_require_default(require("postcss"));
+  34 | ..._*/ _interop_require_default(require("dlv"));
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupContextUtils.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/processTailwindFeatures.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1129ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js:16:52
+Module not found: Can't resolve 'fs'
+  14 | ...
+  15 | ...
+> 16 | ...*/ _interop_require_default(require("fs"));
+     |                                ^^^^^^^^^^^^^
+  17 | ...PURE__*/ _interop_require_default(require("@alloc/quick-lru"));
+  18 | ...__PURE__*/ _interop_require_default(require("../util/hashConfig"));
+  19 | .../*#__PURE__*/ _interop_require_default(require("../public/resolve-co...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1129ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/util/resolveConfigPath.js:19:52
+Module not found: Can't resolve 'fs'
+  17 |     }
+  18 | });
+> 19 | const _fs = /*#__PURE__*/ _interop_require_default(require("fs"));
+     |                                                    ^^^^^^^^^^^^^
+  20 | const _path = /*#__PURE__*/ _interop_require_default(require("path"));
+  21 | function _interop_require_default(obj) {
+  22 |     return obj && obj.__esModule ? obj : {
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/util/resolveConfigPath.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1129ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/settings.js:4:12
+Module not found: Can't resolve 'fs'
+  2 | Object.defineProperty(exports, "__esModule", { value: true });
+  3 | exports.DEFAULT_FILE_SYSTEM_ADAPTER = void 0;
+> 4 | const fs = require("fs");
+    |            ^^^^^^^^^^^^^
+  5 | const os = require("os");
+  6 | /**
+  7 |  * The `os.cpus` method can return zero. We expect the number of cores t...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/settings.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/node_modules/fast-glob/out/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/content.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1130ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js:1:110718
+Module not found: Can't resolve 'module'
+> 1 | ...se strict";module.exports=require("module")},os:module=>{"use strict"...
+    |                              ^^^^^^^^^^^^^^^^^
+  2 | ...
+  3 | ...
+  4 | ...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1130ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js:1:209874
+Module not found: Can't resolve 'module'
+> 1 | ...de_module_namespaceObject=require("module"),external_node_fs_namespac...
+    |                              ^^^^^^^^^^^^^^^^^
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1130ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js:1:62357
+Module not found: Can't resolve 'perf_hooks'
+> 1 | ...f_hooks_namespaceObject=require("perf_hooks"),external_os_namespaceOb...
+    |                            ^^^^^^^^^^^^^^^^^^^^^
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1130ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js:1:111129
+Module not found: Can't resolve 'v8'
+> 1 | ..."use strict";module.exports=require("v8")},"./node_modules/.pnpm/@bab...
+    |                                ^^^^^^^^^^^^^
+  2 | ...
+  3 | ...
+  4 | ...
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/babel.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
+[    1130ms] [ERROR] ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js:1:211244
+Module not found: Can't resolve 'v8'
+> 1 | ...nal_node_v8_namespaceObject=require("v8"),external_node_util_namespac...
+    |                                ^^^^^^^^^^^^^
+
+Import trace:
+  Client Component Browser:
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/dist/jiti.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/jiti/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/load-config.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/lib/setupTrackingContext.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/plugin.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/node_modules/tailwindcss/lib/index.js [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/globals.css [Client Component Browser]
+    ./OneDrive/Documentos/Saas Factory/Proyectos Software/OpenClawAsistente/src/app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found @ http://localhost:3001/_next/static/chunks/08.p_next_dist_0a85wza._.js:1945
