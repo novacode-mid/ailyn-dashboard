@@ -1,6 +1,6 @@
 import { runAdminChat, runChat, runDynamicChat, runDynamicChatWithResults, runReasoningWithTools } from "./ai";
 import type { ToolCall, ToolResult } from "./ai";
-import { createTask, createWalletPass, getAgentProfile, getAgentProfileById, getAgentStats, getLeadById, getNextPendingTask, getUnattendedLeads, getUserBySmartpassId, getUserByTelegramId, insertKnowledgeDoc, isEmailAlreadySaved, listAgentsWithSkills, listCompanies, listKnowledgeDocs, listLeads, listMonitoredEmails, listSkills, listWalletPasses, logAudit, markLeadNotified, saveLead, saveMonitoredEmail, updateTaskStatus, updateWalletPassInstalled, updateWalletPassUrl, upsertAgentWithSkills, upsertUser } from "./d1";
+import { createCompany, createTask, createWalletPass, deleteAgent, deleteCompany, deleteKnowledgeDoc, getAgentProfile, getAgentProfileById, getAgentStats, getCompanyDetail, getCompanyMetrics, getGlobalMetrics, getLeadById, getNextPendingTask, getUnattendedLeads, getUserBySmartpassId, getUserByTelegramId, insertKnowledgeDoc, isEmailAlreadySaved, listAgentsWithSkills, listCompaniesWithStats, listKnowledgeDocs, listLeads, listMonitoredEmails, listSkills, listWalletPasses, logAudit, markLeadNotified, saveLead, saveMonitoredEmail, updateAgent, updateCompany, updateTaskStatus, updateWalletPassInstalled, updateWalletPassUrl, upsertAgentWithSkills, upsertUser } from "./d1";
 import { createPass, emailPass, notifyViaPass } from "./smartpass";
 import { proposeAction, approveAction, rejectAction, closeLeadActions } from "./action-engine";
 import { runLLM } from "./llm-router";
@@ -1110,7 +1110,7 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
         status: 401, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
       });
     }
-    const companies = await listCompanies(env);
+    const companies = await listCompaniesWithStats(env);
     return new Response(JSON.stringify(companies), {
       headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });
@@ -1731,6 +1731,117 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
     }
 
     return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "Content-Type": "application/json" } });
+  }
+
+  // ── Admin Panel — Companies CRUD ─────────────────────────────────────────
+
+  // Helper de auth para admin panel
+  const isAdmin = () => (request.headers.get("X-CF-Token") ?? "") === env.CLOUDFLARE_ADMIN_TOKEN;
+
+  // POST /api/admin/companies — crear company
+  if (request.method === "POST" && pathname === "/api/admin/companies") {
+    if (!isAdmin()) return corsResponse(JSON.stringify({ error: "Unauthorized" }), 401);
+    let body: { name?: string };
+    try { body = await request.json(); } catch {
+      return corsResponse(JSON.stringify({ error: "Invalid JSON" }), 400);
+    }
+    if (!body.name?.trim()) return corsResponse(JSON.stringify({ error: "name required" }), 400);
+    try {
+      const id = await createCompany(env, body.name.trim());
+      await logAudit(env, "company_created", { id, name: body.name });
+      return corsResponse(JSON.stringify({ ok: true, id }), 201);
+    } catch {
+      return corsResponse(JSON.stringify({ error: "Company name already exists" }), 409);
+    }
+  }
+
+  // GET /api/admin/companies/:id — detalle con agents
+  if (request.method === "GET" && /^\/api\/admin\/companies\/\d+$/.test(pathname)) {
+    if (!isAdmin()) return corsResponse(JSON.stringify({ error: "Unauthorized" }), 401);
+    const id = parseInt(pathname.split("/")[4]);
+    const detail = await getCompanyDetail(env, id);
+    if (!detail) return corsResponse(JSON.stringify({ error: "Not found" }), 404);
+    return corsResponse(JSON.stringify(detail), 200);
+  }
+
+  // PUT /api/admin/companies/:id — editar company
+  if (request.method === "PUT" && /^\/api\/admin\/companies\/\d+$/.test(pathname)) {
+    if (!isAdmin()) return corsResponse(JSON.stringify({ error: "Unauthorized" }), 401);
+    const id = parseInt(pathname.split("/")[4]);
+    let body: { name?: string };
+    try { body = await request.json(); } catch {
+      return corsResponse(JSON.stringify({ error: "Invalid JSON" }), 400);
+    }
+    if (!body.name?.trim()) return corsResponse(JSON.stringify({ error: "name required" }), 400);
+    await updateCompany(env, id, body.name.trim());
+    await logAudit(env, "company_updated", { id, name: body.name });
+    return corsResponse(JSON.stringify({ ok: true }), 200);
+  }
+
+  // DELETE /api/admin/companies/:id — eliminar company
+  if (request.method === "DELETE" && /^\/api\/admin\/companies\/\d+$/.test(pathname)) {
+    if (!isAdmin()) return corsResponse(JSON.stringify({ error: "Unauthorized" }), 401);
+    const id = parseInt(pathname.split("/")[4]);
+    await deleteCompany(env, id);
+    await logAudit(env, "company_deleted", { id });
+    return corsResponse(JSON.stringify({ ok: true }), 200);
+  }
+
+  // GET /api/admin/companies/:id/metrics — métricas de empresa
+  if (request.method === "GET" && /^\/api\/admin\/companies\/\d+\/metrics$/.test(pathname)) {
+    if (!isAdmin()) return corsResponse(JSON.stringify({ error: "Unauthorized" }), 401);
+    const id = parseInt(pathname.split("/")[4]);
+    const company = await env.DB.prepare(`SELECT name FROM companies WHERE id = ?`).bind(id).first<{ name: string }>();
+    if (!company) return corsResponse(JSON.stringify({ error: "Not found" }), 404);
+    const metrics = await getCompanyMetrics(env, company.name);
+    return corsResponse(JSON.stringify(metrics), 200);
+  }
+
+  // ── Admin Panel — Agents CRUD ────────────────────────────────────────────
+
+  // PUT /api/admin/agents/:id — editar agent
+  if (request.method === "PUT" && /^\/api\/admin\/agents\/\d+$/.test(pathname)) {
+    if (!isAdmin()) return corsResponse(JSON.stringify({ error: "Unauthorized" }), 401);
+    const id = parseInt(pathname.split("/")[4]);
+    let body: { name?: string; role_prompt?: string; model_id?: string; is_active?: number; skill_ids?: number[] };
+    try { body = await request.json(); } catch {
+      return corsResponse(JSON.stringify({ error: "Invalid JSON" }), 400);
+    }
+    await updateAgent(env, id, body);
+    await logAudit(env, "agent_updated", { id });
+    return corsResponse(JSON.stringify({ ok: true }), 200);
+  }
+
+  // DELETE /api/admin/agents/:id — eliminar agent
+  if (request.method === "DELETE" && /^\/api\/admin\/agents\/\d+$/.test(pathname)) {
+    if (!isAdmin()) return corsResponse(JSON.stringify({ error: "Unauthorized" }), 401);
+    const id = parseInt(pathname.split("/")[4]);
+    await deleteAgent(env, id);
+    await logAudit(env, "agent_deleted", { id });
+    return corsResponse(JSON.stringify({ ok: true }), 200);
+  }
+
+  // ── Admin Panel — Knowledge CRUD ─────────────────────────────────────────
+
+  // DELETE /api/admin/knowledge/:id — eliminar doc del RAG
+  if (request.method === "DELETE" && /^\/api\/admin\/knowledge\/\d+$/.test(pathname)) {
+    if (!isAdmin()) return corsResponse(JSON.stringify({ error: "Unauthorized" }), 401);
+    const id = parseInt(pathname.split("/")[4]);
+    const vectorId = await deleteKnowledgeDoc(env, id);
+    if (!vectorId) return corsResponse(JSON.stringify({ error: "Not found" }), 404);
+    // Eliminar de Vectorize también
+    try { await env.KNOWLEDGE_BASE.deleteByIds([vectorId]); } catch { /* ok si ya no existe */ }
+    await logAudit(env, "knowledge_doc_deleted", { id, vectorId });
+    return corsResponse(JSON.stringify({ ok: true }), 200);
+  }
+
+  // ── Admin Panel — Global Metrics ─────────────────────────────────────────
+
+  // GET /api/admin/metrics — métricas globales
+  if (request.method === "GET" && pathname === "/api/admin/metrics") {
+    if (!isAdmin()) return corsResponse(JSON.stringify({ error: "Unauthorized" }), 401);
+    const metrics = await getGlobalMetrics(env);
+    return corsResponse(JSON.stringify(metrics), 200);
   }
 
   return new Response("Not Found", { status: 404 });

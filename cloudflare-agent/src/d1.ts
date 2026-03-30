@@ -704,3 +704,249 @@ export async function updateWalletPassUrl(
     "UPDATE wallet_passes SET install_url = ? WHERE serial_number = ?"
   ).bind(installUrl, serialNumber).run();
 }
+
+// ── Admin Panel — Companies CRUD ──────────────────────────────────────────
+
+export interface CompanyWithStats {
+  id: number;
+  name: string;
+  created_at: string;
+  agent_count: number;
+  lead_count: number;
+  email_count: number;
+  followup_count: number;
+}
+
+export async function listCompaniesWithStats(env: Env): Promise<CompanyWithStats[]> {
+  const res = await env.DB.prepare(`
+    SELECT
+      c.id, c.name, c.created_at,
+      COUNT(DISTINCT a.id)   AS agent_count,
+      COUNT(DISTINCT l.id)   AS lead_count,
+      (SELECT COUNT(*) FROM pending_actions pa2
+       WHERE pa2.company_id = c.name AND pa2.action_type = 'send_email'
+         AND pa2.status = 'executed') AS email_count,
+      (SELECT COUNT(*) FROM pending_actions pa3
+       WHERE pa3.company_id = c.name AND pa3.action_type = 'send_followup'
+         AND pa3.status IN ('scheduled','executed')) AS followup_count
+    FROM companies c
+    LEFT JOIN agents a ON a.company_id = c.id
+    LEFT JOIN leads l  ON l.company_id = c.name
+    GROUP BY c.id
+    ORDER BY c.name ASC
+  `).all<CompanyWithStats>();
+  return res.results ?? [];
+}
+
+export async function createCompany(env: Env, name: string): Promise<number> {
+  const res = await env.DB.prepare(
+    `INSERT INTO companies (name) VALUES (?)`
+  ).bind(name.trim()).run();
+  return res.meta.last_row_id as number;
+}
+
+export async function updateCompany(env: Env, id: number, name: string): Promise<void> {
+  await env.DB.prepare(
+    `UPDATE companies SET name = ? WHERE id = ?`
+  ).bind(name.trim(), id).run();
+}
+
+export async function deleteCompany(env: Env, id: number): Promise<void> {
+  // Cascade: delete agents, agent_skills, knowledge_docs, leads, wallet_passes
+  await env.DB.batch([
+    env.DB.prepare(`DELETE FROM agent_skills WHERE agent_id IN (SELECT id FROM agents WHERE company_id = ?)`).bind(id),
+    env.DB.prepare(`DELETE FROM agents WHERE company_id = ?`).bind(id),
+    env.DB.prepare(`DELETE FROM knowledge_docs WHERE company_id = ?`).bind(id),
+    env.DB.prepare(`DELETE FROM wallet_passes WHERE company_id = ?`).bind(id),
+    env.DB.prepare(`DELETE FROM companies WHERE id = ?`).bind(id),
+  ]);
+}
+
+export interface CompanyDetail {
+  id: number;
+  name: string;
+  created_at: string;
+  agents: AgentWithSkills[];
+}
+
+export async function getCompanyDetail(env: Env, id: number): Promise<CompanyDetail | null> {
+  const company = await env.DB.prepare(
+    `SELECT id, name, created_at FROM companies WHERE id = ?`
+  ).bind(id).first<{ id: number; name: string; created_at: string }>();
+  if (!company) return null;
+
+  const rows = await env.DB.prepare(`
+    SELECT a.id, a.company_id, c.name AS company_name, a.name, a.role_prompt, a.model_id, a.is_active,
+           s.id AS skill_id, s.name AS skill_name
+    FROM agents a
+    JOIN companies c ON a.company_id = c.id
+    LEFT JOIN agent_skills ak ON a.id = ak.agent_id
+    LEFT JOIN skills s ON ak.skill_id = s.id
+    WHERE a.company_id = ?
+    ORDER BY a.id ASC
+  `).bind(id).all<{
+    id: number; company_id: number; company_name: string; name: string;
+    role_prompt: string; model_id: string; is_active: number;
+    skill_id: number | null; skill_name: string | null;
+  }>();
+
+  const map = new Map<number, AgentWithSkills>();
+  for (const r of rows.results ?? []) {
+    if (!map.has(r.id)) {
+      map.set(r.id, {
+        id: r.id, company_id: r.company_id, company_name: r.company_name,
+        name: r.name, role_prompt: r.role_prompt, model_id: r.model_id,
+        is_active: r.is_active, skill_ids: [], skill_names: [],
+      });
+    }
+    if (r.skill_id !== null) {
+      map.get(r.id)!.skill_ids.push(r.skill_id);
+      map.get(r.id)!.skill_names.push(r.skill_name!);
+    }
+  }
+
+  return { ...company, agents: [...map.values()] };
+}
+
+// ── Admin Panel — Agents CRUD ─────────────────────────────────────────────
+
+export async function updateAgent(
+  env: Env,
+  agentId: number,
+  data: { name?: string; role_prompt?: string; model_id?: string; is_active?: number; skill_ids?: number[] }
+): Promise<void> {
+  if (data.name || data.role_prompt || data.model_id || data.is_active !== undefined) {
+    const sets: string[] = [];
+    const vals: unknown[] = [];
+    if (data.name)       { sets.push("name = ?");        vals.push(data.name.trim()); }
+    if (data.role_prompt){ sets.push("role_prompt = ?"); vals.push(data.role_prompt.trim()); }
+    if (data.model_id)   { sets.push("model_id = ?");    vals.push(data.model_id.trim()); }
+    if (data.is_active !== undefined) { sets.push("is_active = ?"); vals.push(data.is_active); }
+    if (sets.length > 0) {
+      vals.push(agentId);
+      await env.DB.prepare(`UPDATE agents SET ${sets.join(", ")} WHERE id = ?`).bind(...vals).run();
+    }
+  }
+  if (data.skill_ids !== undefined) {
+    await env.DB.batch([
+      env.DB.prepare(`DELETE FROM agent_skills WHERE agent_id = ?`).bind(agentId),
+      ...data.skill_ids.map((sid) =>
+        env.DB.prepare(`INSERT OR IGNORE INTO agent_skills (agent_id, skill_id) VALUES (?, ?)`).bind(agentId, sid)
+      ),
+    ]);
+  }
+}
+
+export async function deleteAgent(env: Env, agentId: number): Promise<void> {
+  await env.DB.batch([
+    env.DB.prepare(`DELETE FROM agent_skills WHERE agent_id = ?`).bind(agentId),
+    env.DB.prepare(`DELETE FROM agents WHERE id = ?`).bind(agentId),
+  ]);
+}
+
+// ── Admin Panel — Knowledge Docs CRUD ────────────────────────────────────
+
+export async function deleteKnowledgeDoc(
+  env: Env,
+  docId: number
+): Promise<string | null> {
+  const doc = await env.DB.prepare(
+    `SELECT vector_id FROM knowledge_docs WHERE id = ?`
+  ).bind(docId).first<{ vector_id: string }>();
+  if (!doc) return null;
+  await env.DB.prepare(`DELETE FROM knowledge_docs WHERE id = ?`).bind(docId).run();
+  return doc.vector_id;
+}
+
+// ── Admin Panel — Metrics ─────────────────────────────────────────────────
+
+export interface CompanyMetrics {
+  total_leads: number;
+  leads_high_score: number;
+  emails_sent: number;
+  followups_pending: number;
+  followups_executed: number;
+  leads_by_urgency: { urgency: string; count: number }[];
+  recent_leads: { contact_name: string; contact_company: string | null; lead_score: number; created_at: string }[];
+}
+
+export async function getCompanyMetrics(env: Env, companyName: string): Promise<CompanyMetrics> {
+  const [totals, byUrgency, recent, actions] = await Promise.all([
+    env.DB.prepare(`
+      SELECT
+        COUNT(*) AS total_leads,
+        SUM(CASE WHEN lead_score >= 80 THEN 1 ELSE 0 END) AS leads_high_score
+      FROM leads WHERE company_id = ?
+    `).bind(companyName).first<{ total_leads: number; leads_high_score: number }>(),
+    env.DB.prepare(`
+      SELECT urgency, COUNT(*) AS count FROM leads
+      WHERE company_id = ? GROUP BY urgency ORDER BY count DESC
+    `).bind(companyName).all<{ urgency: string; count: number }>(),
+    env.DB.prepare(`
+      SELECT contact_name, contact_company, lead_score, created_at FROM leads
+      WHERE company_id = ? ORDER BY created_at DESC LIMIT 10
+    `).bind(companyName).all<{ contact_name: string; contact_company: string | null; lead_score: number; created_at: string }>(),
+    env.DB.prepare(`
+      SELECT
+        SUM(CASE WHEN action_type = 'send_email' AND status = 'executed' THEN 1 ELSE 0 END) AS emails_sent,
+        SUM(CASE WHEN action_type = 'send_followup' AND status = 'scheduled' THEN 1 ELSE 0 END) AS followups_pending,
+        SUM(CASE WHEN action_type = 'send_followup' AND status = 'executed' THEN 1 ELSE 0 END) AS followups_executed
+      FROM pending_actions WHERE company_id = ?
+    `).bind(companyName).first<{ emails_sent: number; followups_pending: number; followups_executed: number }>(),
+  ]);
+
+  return {
+    total_leads: totals?.total_leads ?? 0,
+    leads_high_score: totals?.leads_high_score ?? 0,
+    emails_sent: actions?.emails_sent ?? 0,
+    followups_pending: actions?.followups_pending ?? 0,
+    followups_executed: actions?.followups_executed ?? 0,
+    leads_by_urgency: byUrgency.results ?? [],
+    recent_leads: recent.results ?? [],
+  };
+}
+
+export interface GlobalMetrics {
+  total_companies: number;
+  total_leads: number;
+  total_emails_sent: number;
+  total_followups: number;
+  leads_last_30d: { date: string; count: number }[];
+  top_companies: { name: string; lead_count: number }[];
+}
+
+export async function getGlobalMetrics(env: Env): Promise<GlobalMetrics> {
+  const [summary, leadsPerDay, topCompanies] = await Promise.all([
+    env.DB.prepare(`
+      SELECT
+        (SELECT COUNT(*) FROM companies) AS total_companies,
+        (SELECT COUNT(*) FROM leads) AS total_leads,
+        (SELECT COUNT(*) FROM pending_actions WHERE action_type='send_email' AND status='executed') AS total_emails_sent,
+        (SELECT COUNT(*) FROM pending_actions WHERE action_type='send_followup') AS total_followups
+    `).first<{ total_companies: number; total_leads: number; total_emails_sent: number; total_followups: number }>(),
+    env.DB.prepare(`
+      SELECT date(created_at) AS date, COUNT(*) AS count
+      FROM leads
+      WHERE created_at >= datetime('now', '-30 days')
+      GROUP BY date(created_at)
+      ORDER BY date ASC
+    `).all<{ date: string; count: number }>(),
+    env.DB.prepare(`
+      SELECT c.name, COUNT(l.id) AS lead_count
+      FROM companies c
+      LEFT JOIN leads l ON l.company_id = c.name
+      GROUP BY c.id
+      ORDER BY lead_count DESC
+      LIMIT 5
+    `).all<{ name: string; lead_count: number }>(),
+  ]);
+
+  return {
+    total_companies: summary?.total_companies ?? 0,
+    total_leads: summary?.total_leads ?? 0,
+    total_emails_sent: summary?.total_emails_sent ?? 0,
+    total_followups: summary?.total_followups ?? 0,
+    leads_last_30d: leadsPerDay.results ?? [],
+    top_companies: topCompanies.results ?? [],
+  };
+}
