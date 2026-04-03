@@ -7,10 +7,16 @@ const GOOGLE_AUTH_URL  = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
 const SCOPES = [
-  "https://www.googleapis.com/auth/gmail.readonly",
-  "https://www.googleapis.com/auth/gmail.send",
+  // Gmail — gestión completa
+  "https://www.googleapis.com/auth/gmail.readonly",     // Leer emails
+  "https://www.googleapis.com/auth/gmail.send",          // Enviar emails
+  "https://www.googleapis.com/auth/gmail.compose",       // Crear borradores
+  "https://www.googleapis.com/auth/gmail.modify",        // Modificar (etiquetas, marcar leído, archivar)
+  "https://www.googleapis.com/auth/gmail.labels",        // Crear/editar etiquetas (carpetas)
+  // Calendar
   "https://www.googleapis.com/auth/calendar.readonly",
   "https://www.googleapis.com/auth/calendar.events",
+  // User info
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/userinfo.profile",
 ].join(" ");

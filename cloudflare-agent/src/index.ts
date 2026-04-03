@@ -68,6 +68,77 @@ function corsResponse(body: string, status: number, extra?: Record<string, strin
   });
 }
 
+// ── API Key auth ──────────────────────────────────────────────────────────
+
+async function authenticateApiKey(request: Request, env: Env): Promise<{ companyId: number; keyId: number; permissions: Record<string, boolean> } | null> {
+  const authHeader = request.headers.get("Authorization") ?? "";
+  const apiKey = authHeader.startsWith("Bearer ak_") ? authHeader.slice(7) : null;
+  if (!apiKey) return null;
+
+  // Hash the key for lookup (store hashed, compare hashed)
+  const encoder = new TextEncoder();
+  const data = encoder.encode(apiKey);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const keyHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+  const row = await env.DB.prepare(
+    `SELECT id, company_id, permissions, rate_limit, is_active FROM api_keys WHERE key_hash = ?`
+  ).bind(keyHash).first<{ id: number; company_id: number; permissions: string; rate_limit: number; is_active: number }>();
+
+  if (!row || !row.is_active) return null;
+
+  // Rate limiting via KV
+  const rateLimitKey = `api_rate:${row.id}:${Math.floor(Date.now() / 60000)}`; // per minute
+  const currentCount = parseInt(await env.KV.get(rateLimitKey) ?? "0", 10);
+  if (currentCount >= row.rate_limit) return null; // Rate limited
+  await env.KV.put(rateLimitKey, String(currentCount + 1), { expirationTtl: 120 });
+
+  // Update last_used_at
+  env.DB.prepare(`UPDATE api_keys SET last_used_at = datetime('now') WHERE id = ?`).bind(row.id).run().catch(() => {});
+
+  let permissions: Record<string, boolean>;
+  try { permissions = JSON.parse(row.permissions); } catch { permissions = {}; }
+
+  return { companyId: row.company_id, keyId: row.id, permissions };
+}
+
+// ── Outgoing webhooks ─────────────────────────────────────────────────────
+
+async function triggerWebhooks(env: Env, companyId: number, event: string, data: Record<string, unknown>): Promise<void> {
+  const webhooks = await env.DB.prepare(
+    `SELECT id, url, secret, events FROM webhook_endpoints WHERE company_id = ? AND is_active = 1`
+  ).bind(companyId).all<{ id: number; url: string; secret: string; events: string }>();
+
+  for (const wh of (webhooks.results ?? [])) {
+    try {
+      const events = JSON.parse(wh.events) as string[];
+      if (!events.includes("all") && !events.includes(event)) continue;
+
+      const payload = JSON.stringify({ event, data, timestamp: new Date().toISOString() });
+
+      // Sign payload with webhook secret
+      const encoder = new TextEncoder();
+      const key = await crypto.subtle.importKey("raw", encoder.encode(wh.secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+      const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
+      const signature = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+      await fetch(wh.url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Ailyn-Signature": signature,
+          "X-Ailyn-Event": event,
+        },
+        body: payload,
+      });
+
+      env.DB.prepare(`UPDATE webhook_endpoints SET last_triggered_at = datetime('now') WHERE id = ?`).bind(wh.id).run().catch(() => {});
+    } catch (err) {
+      console.error(`[webhook] Failed to trigger ${wh.url}:`, String(err));
+    }
+  }
+}
+
 // ── Input sanitization ────────────────────────────────────────────────────
 
 function sanitize(str: string): string {
@@ -2815,6 +2886,209 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
       console.error("Cancel action error:", err);
       return corsResponse(JSON.stringify({ error: "Error al cancelar acción" }), 500, undefined, request);
     }
+  }
+
+  // ── Public API — Key Management ──────────────────────────────────────────
+
+  // POST /api/keys/create — generate new API key
+  if (request.method === "POST" && pathname === "/api/keys/create") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    const body = await request.json() as { name?: string };
+    const keyName = body.name?.trim() || "Default";
+
+    // Generate API key: ak_ + 48 random chars
+    const rawKey = "ak_" + Array.from(crypto.getRandomValues(new Uint8Array(36)))
+      .map(b => b.toString(16).padStart(2, "0")).join("");
+    const prefix = rawKey.slice(0, 10); // ak_XXXXXX for display
+
+    // Hash for storage
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(rawKey));
+    const keyHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+    await env.DB.prepare(
+      `INSERT INTO api_keys (company_id, key_hash, key_prefix, name) VALUES (?, ?, ?, ?)`
+    ).bind(user.company_id, keyHash, prefix, keyName).run();
+
+    // Return the FULL key only once — after this it can never be retrieved
+    return corsResponse(JSON.stringify({
+      key: rawKey,
+      prefix,
+      name: keyName,
+      warning: "Save this key. It cannot be retrieved again.",
+    }), 200, undefined, request);
+  }
+
+  // GET /api/keys — list API keys (masked)
+  if (request.method === "GET" && pathname === "/api/keys") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    const keys = await env.DB.prepare(
+      `SELECT id, key_prefix, name, permissions, rate_limit, is_active, last_used_at, created_at FROM api_keys WHERE company_id = ?`
+    ).bind(user.company_id).all();
+
+    return corsResponse(JSON.stringify({ keys: keys.results ?? [] }), 200, undefined, request);
+  }
+
+  // DELETE /api/keys/:id — revoke API key
+  if (request.method === "DELETE" && pathname.match(/^\/api\/keys\/\d+$/)) {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+    const keyId = parseInt(pathname.split("/")[3], 10);
+    await env.DB.prepare(`UPDATE api_keys SET is_active = 0 WHERE id = ? AND company_id = ?`).bind(keyId, user.company_id).run();
+    return corsResponse(JSON.stringify({ ok: true }), 200, undefined, request);
+  }
+
+  // ── Public API — REST Endpoints ──────────────────────────────────────────
+
+  // POST /v1/chat — send message, get response
+  if (request.method === "POST" && pathname === "/v1/chat") {
+    const auth = await authenticateApiKey(request, env);
+    if (!auth) return corsResponse(JSON.stringify({ error: "Invalid API key or rate limited" }), 401);
+    if (!auth.permissions.chat) return corsResponse(JSON.stringify({ error: "Chat permission not granted" }), 403);
+
+    const body = await request.json() as { message: string; session_id?: string };
+    if (!body.message?.trim()) return corsResponse(JSON.stringify({ error: "message required" }), 400);
+
+    const sessionId = body.session_id ?? `api-${auth.companyId}-${Date.now()}`;
+    const company = await env.DB.prepare(`SELECT name, industry FROM companies WHERE id = ?`).bind(auth.companyId).first<{ name: string; industry: string | null }>();
+
+    const history = await loadHistory(env, sessionId, 10, auth.companyId);
+    const integrations = await loadIntegrations(env, auth.companyId);
+    const googleToken = integrations.googleToken ? await getValidGoogleToken(env, auth.companyId) : null;
+
+    const result = await orchestrate({
+      message: body.message.trim(),
+      companyId: auth.companyId,
+      companyName: company?.name ?? "API",
+      industry: company?.industry ?? undefined,
+      sessionId,
+      channel: "api",
+      history,
+      googleToken,
+      githubToken: integrations.githubToken,
+    }, env);
+
+    // Trigger webhooks
+    await triggerWebhooks(env, auth.companyId, "chat.completed", {
+      message: body.message, reply: result.text, model: result.model_used, session_id: sessionId,
+    });
+
+    return corsResponse(JSON.stringify({
+      reply: result.text,
+      session_id: sessionId,
+      model: result.model_used,
+      complexity: result.complexity,
+      tools_used: result.tools_used,
+      emailDraft: result.emailDraft ?? null,
+      calendarDraft: result.calendarDraft ?? null,
+      followupDraft: result.followupDraft ?? null,
+    }));
+  }
+
+  // GET /v1/inbox — get organized inbox
+  if (request.method === "GET" && pathname === "/v1/inbox") {
+    const auth = await authenticateApiKey(request, env);
+    if (!auth) return corsResponse(JSON.stringify({ error: "Invalid API key" }), 401);
+
+    const inbox = await env.DB.prepare(
+      `SELECT from_name, from_address, subject, snippet, category, priority, action_suggested, created_at
+       FROM email_inbox WHERE company_id = ? ORDER BY priority ASC, created_at DESC LIMIT 20`
+    ).bind(auth.companyId).all();
+
+    return corsResponse(JSON.stringify({ emails: inbox.results ?? [] }));
+  }
+
+  // GET /v1/crm/:name — CRM lookup
+  if (request.method === "GET" && pathname.match(/^\/v1\/crm\/.+$/)) {
+    const auth = await authenticateApiKey(request, env);
+    if (!auth) return corsResponse(JSON.stringify({ error: "Invalid API key" }), 401);
+    if (!auth.permissions.crm) return corsResponse(JSON.stringify({ error: "CRM permission not granted" }), 403);
+
+    const contactName = decodeURIComponent(pathname.split("/")[3]);
+    const searchTerm = `%${contactName}%`;
+
+    const [emails, meetings, followups, leads] = await Promise.all([
+      env.DB.prepare(`SELECT action_data, status, created_at FROM pending_actions WHERE company_id = ? AND action_type = 'send_email' AND action_data LIKE ? ORDER BY created_at DESC LIMIT 5`).bind(String(auth.companyId), searchTerm).all(),
+      env.DB.prepare(`SELECT action_data, status, created_at FROM pending_actions WHERE company_id = ? AND action_type = 'schedule_meeting' AND action_data LIKE ? ORDER BY created_at DESC LIMIT 5`).bind(String(auth.companyId), searchTerm).all(),
+      env.DB.prepare(`SELECT action_data, status, followup_scheduled_at FROM pending_actions WHERE company_id = ? AND action_type = 'send_followup' AND action_data LIKE ? ORDER BY created_at DESC LIMIT 5`).bind(String(auth.companyId), searchTerm).all(),
+      env.DB.prepare(`SELECT contact_name, contact_email, contact_company, lead_score, urgency, status, created_at FROM leads WHERE company_id = ? AND (contact_name LIKE ? OR contact_company LIKE ?) ORDER BY created_at DESC LIMIT 3`).bind(auth.companyId, searchTerm, searchTerm).all(),
+    ]);
+
+    return corsResponse(JSON.stringify({ contact: contactName, emails: emails.results, meetings: meetings.results, followups: followups.results, leads: leads.results }));
+  }
+
+  // GET /v1/activity — recent activity
+  if (request.method === "GET" && pathname === "/v1/activity") {
+    const auth = await authenticateApiKey(request, env);
+    if (!auth) return corsResponse(JSON.stringify({ error: "Invalid API key" }), 401);
+
+    const actions = await env.DB.prepare(
+      `SELECT id, action_type, action_data, status, created_at, executed_at FROM pending_actions WHERE company_id = ? ORDER BY created_at DESC LIMIT 20`
+    ).bind(String(auth.companyId)).all();
+
+    return corsResponse(JSON.stringify({ actions: actions.results ?? [] }));
+  }
+
+  // POST /v1/actions/:id/execute — execute a pending action via API
+  if (request.method === "POST" && pathname.match(/^\/v1\/actions\/\d+\/execute$/)) {
+    const auth = await authenticateApiKey(request, env);
+    if (!auth) return corsResponse(JSON.stringify({ error: "Invalid API key" }), 401);
+
+    const actionId = parseInt(pathname.split("/")[3], 10);
+    const body = await request.json() as { action: "approve" | "reject" };
+    // For reject, mark as rejected
+    if (body.action === "reject") {
+      await env.DB.prepare(`UPDATE pending_actions SET status = 'rejected', decided_at = datetime('now') WHERE id = ? AND company_id = ?`).bind(actionId, String(auth.companyId)).run();
+      return corsResponse(JSON.stringify({ ok: true, message: "Rejected" }));
+    }
+    // For approve, mark as scheduled - the existing cron will handle execution
+    await env.DB.prepare(`UPDATE pending_actions SET status = 'scheduled', decided_at = datetime('now') WHERE id = ? AND company_id = ?`).bind(actionId, String(auth.companyId)).run();
+    return corsResponse(JSON.stringify({ ok: true, message: "Approved" }));
+  }
+
+  // ── Webhook Management ──────────────────────────────────────────────────
+
+  // POST /api/webhooks/create — register webhook endpoint
+  if (request.method === "POST" && pathname === "/api/webhooks/create") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    const body = await request.json() as { url: string; events?: string[] };
+    if (!body.url?.startsWith("https://")) return corsResponse(JSON.stringify({ error: "URL must be HTTPS" }), 400, undefined, request);
+
+    const secret = Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b => b.toString(16).padStart(2, "0")).join("");
+    const events = JSON.stringify(body.events ?? ["all"]);
+
+    const result = await env.DB.prepare(
+      `INSERT INTO webhook_endpoints (company_id, url, events, secret) VALUES (?, ?, ?, ?)`
+    ).bind(user.company_id, body.url, events, secret).run();
+
+    return corsResponse(JSON.stringify({ id: result.meta.last_row_id, secret, events: body.events ?? ["all"] }), 200, undefined, request);
+  }
+
+  // GET /api/webhooks/list — list webhooks
+  if (request.method === "GET" && pathname === "/api/webhooks/list") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    const webhooks = await env.DB.prepare(
+      `SELECT id, url, events, is_active, last_triggered_at, created_at FROM webhook_endpoints WHERE company_id = ?`
+    ).bind(user.company_id).all();
+
+    return corsResponse(JSON.stringify({ webhooks: webhooks.results ?? [] }), 200, undefined, request);
+  }
+
+  // DELETE /api/webhooks/:id — delete webhook
+  if (request.method === "DELETE" && pathname.match(/^\/api\/webhooks\/\d+$/)) {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+    const whId = parseInt(pathname.split("/")[3], 10);
+    await env.DB.prepare(`DELETE FROM webhook_endpoints WHERE id = ? AND company_id = ?`).bind(whId, user.company_id).run();
+    return corsResponse(JSON.stringify({ ok: true }), 200, undefined, request);
   }
 
   // ── Dashboard Summary API ─────────────────────────────────────────────

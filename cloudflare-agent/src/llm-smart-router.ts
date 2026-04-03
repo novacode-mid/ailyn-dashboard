@@ -90,6 +90,11 @@ function preDetectTools(message: string): { tools: AvailableTool[] } {
   // Detectar si quiere enviar email: (dirección + verbo) O (dirección + palabra "email/correo")
   if (hasEmailAddress && (hasSendVerb || hasEmailWord)) tools.push("send_email");
 
+  // Borrador / draft / etiquetar / organizar correo → usa gmail_send
+  if (/\b(borrador|draft|etiqueta|label|carpeta|folder|archiva|organiza.*correo|clasifica.*email)\b/.test(lower)) {
+    tools.push("gmail_send");
+  }
+
   // Notes/Knowledge search: buscar en notas guardadas
   if (/\b(notas?|apuntes?|guard[ée]|knowledge|obsidian)\b/.test(lower)
     && /\b(tengo|sobre|busca|encuentra|qu[ée]|cu[áa]les|relacionad)\b/.test(lower)) {

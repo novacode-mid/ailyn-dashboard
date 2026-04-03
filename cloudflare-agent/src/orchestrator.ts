@@ -11,6 +11,18 @@ import { getPlanLLMProvider } from "./usage";
 import { getCompanyFeatures, isToolAllowed, getBlockedMessage } from "./features";
 import { loadMemory, detectLearningIntent, saveFact } from "./memory";
 
+// Gmail draft helper (duplicado aquí para evitar import circular con tool-executor)
+async function gmailCreateDraftViaOrchestrator(token: string, to: string, subject: string, body: string): Promise<void> {
+  const email = [`To: ${to}`, `Subject: ${subject}`, `Content-Type: text/plain; charset=utf-8`, "", body].join("\r\n");
+  const raw = btoa(unescape(encodeURIComponent(email))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ message: { raw } }),
+  });
+  if (!res.ok) throw new Error(`Gmail draft error ${res.status}`);
+}
+
 export interface OrchestratorInput {
   message: string;
   companyId: number;
@@ -212,8 +224,16 @@ function buildSystemPrompt(input: OrchestratorInput, toolContext: string, memory
 
   return `Eres Ailyn, el asistente personal inteligente de ${input.companyName}.
 Eres directo, eficiente y proactivo. No repites lo que el usuario dice. No pides permiso para cosas obvias. Actúas.
-Hablas en español por defecto, pero si el usuario escribe en otro idioma, respondes en ese idioma.
 Nunca menciones tu modelo subyacente (Llama, Sonnet, Opus). Eres simplemente "Ailyn".
+NUNCA muestres JSON interno, function_calls, XML, ni datos técnicos al usuario. Solo responde en lenguaje natural.
+
+## Idioma
+Detecta automáticamente el idioma del usuario y responde en ese mismo idioma:
+- Español → responde en español
+- English → respond in English
+- Português → responda em português
+- Para cualquier otro idioma, responde en el idioma del mensaje
+Mantén el idioma consistente durante toda la conversación a menos que el usuario cambie.
 
 Empresa: ${input.companyName}${input.industry ? ` · Industria: ${input.industry}` : ""}
 Fecha y hora: ${now}
@@ -272,6 +292,20 @@ Cuando el usuario pregunte por sus emails ("qué emails tengo?", "emails importa
 3. Para cada email incluye: remitente, asunto, y una ACCIÓN SUGERIDA (responder, agendar reunión, archivar, dar follow-up)
 4. Formato: emoji + remitente en negrita + asunto + acción sugerida
 5. Al final sugiere: "¿Quieres que responda alguno o agende una reunión?"
+
+## Borradores de Gmail
+Cuando el usuario pida guardar un borrador ("guárdame un borrador", "draft para Pedro"):
+1. Redacta el email completo
+2. Al final incluye exactamente:
+---BORRADOR_LISTO---
+{"to":"email@ejemplo.com","subject":"asunto","body":"contenido del email"}
+3. El sistema lo guardará automáticamente como borrador en Gmail
+
+## Organización de correo
+Cuando el usuario pida organizar, etiquetar o clasificar emails:
+1. Si tienes datos del inbox_organized, presenta los emails por categoría
+2. Ofrece acciones: archivar spam, crear etiquetas, mover a carpetas
+3. Ejecuta las acciones que el usuario confirme
 
 ## CRM conversacional
 Cuando el usuario pregunte por un contacto ("qué pasó con Pedro?", "historial de SmartPasses"):
@@ -558,6 +592,33 @@ export async function orchestrate(
     }
   }
 
+  // 9.5 Crear borrador en Gmail si el LLM generó ---BORRADOR_LISTO---
+  if (responseText.includes("---BORRADOR_LISTO---")) {
+    const parts = responseText.split("---BORRADOR_LISTO---");
+    const jsonStr = parts[1]?.trim();
+    if (jsonStr && input.googleToken) {
+      try {
+        const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const draft = JSON.parse(jsonMatch[0]) as { to: string; subject: string; body: string };
+          if (draft.to && draft.subject) {
+            const { getValidGoogleToken: getToken } = await import("./google-oauth");
+            const freshToken = await getToken(env, input.companyId);
+            if (freshToken) {
+              await gmailCreateDraftViaOrchestrator(freshToken, draft.to, draft.subject, draft.body);
+              responseText = parts[0]?.trim() + `\n\n✅ Borrador guardado en Gmail para ${draft.to}`;
+            }
+          }
+        }
+      } catch (e) {
+        console.error("[orchestrator] Draft creation error:", String(e));
+        responseText = parts[0]?.trim() + "\n\n⚠️ No se pudo crear el borrador en Gmail.";
+      }
+    } else {
+      responseText = parts[0]?.trim() ?? responseText;
+    }
+  }
+
   // Guardar en cache si fue simple sin herramientas ni drafts (TTL: 1 hora)
   if (isSimpleNoTools && !emailDraft && !calendarDraft && !followupDraft && !noteDraft && responseText.length < 2000) {
     const cacheKey = `cache:${input.companyId}:${cleanMessage.toLowerCase().trim().slice(0, 100)}`;
@@ -569,6 +630,15 @@ export async function orchestrate(
   if (learning.shouldLearn && learning.fact) {
     saveFact(env, input.companyId, learning.fact, learning.category).catch(() => {});
   }
+
+  // 11. Limpiar respuesta — eliminar XML/JSON interno que el LLM no debería mostrar
+  responseText = responseText
+    .replace(/<function_calls>[\s\S]*?<\/function_calls>/g, "")
+    .replace(/<function_result>[\s\S]*?<\/function_result>/g, "")
+    .replace(/<invoke[\s\S]*?<\/invoke>/g, "")
+    .replace(/```json\s*\{[\s\S]*?"action":\s*"save_note"[\s\S]*?```/g, "")
+    .replace(/\{[\s\S]*?"action":\s*"save_note"[\s\S]*?"status":\s*"saved"\s*\}/g, "")
+    .trim();
 
   const duration = Date.now() - start;
   const indicator = modelIndicator(routing, duration);

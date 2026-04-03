@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ailyn API Documentation</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--bg:#0f172a;--bg2:#1e293b;--bg3:#334155;--text:#f1f5f9;--muted:#94a3b8;--accent:#6366f1;--accent2:#818cf8;--green:#22c55e;--orange:#f59e0b;--red:#ef4444;--border:#334155;--code-bg:#1a1e2e;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;--mono:'SF Mono',Monaco,Consolas,'Liberation Mono',monospace}
+    html{scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.7;display:flex;min-height:100vh}
+    a{color:var(--accent2);text-decoration:none}a:hover{text-decoration:underline}
+
+    /* Sidebar */
+    .sidebar{width:260px;position:fixed;top:0;left:0;height:100vh;background:var(--bg2);border-right:1px solid var(--border);padding:24px 0;overflow-y:auto;z-index:10}
+    .sidebar-logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+    .sidebar-logo span{font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .sidebar-logo small{font-size:11px;color:var(--muted);display:block;margin-top:2px}
+    .sidebar nav a{display:block;padding:8px 20px;color:var(--muted);font-size:13px;transition:all .2s;border-left:3px solid transparent}
+    .sidebar nav a:hover,.sidebar nav a.active{color:var(--text);background:rgba(99,102,241,.08);border-left-color:var(--accent);text-decoration:none}
+    .sidebar nav .section-title{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);padding:16px 20px 6px;opacity:.6}
+
+    /* Content */
+    .content{margin-left:260px;flex:1;padding:40px 60px;max-width:900px}
+    h1{font-size:32px;font-weight:700;margin-bottom:8px}
+    h2{font-size:22px;font-weight:600;margin:48px 0 16px;padding-top:24px;border-top:1px solid var(--border)}
+    h2:first-of-type{border-top:none;margin-top:32px}
+    h3{font-size:16px;font-weight:600;margin:24px 0 8px;color:var(--accent2)}
+    p{margin-bottom:12px;color:var(--muted)}
+    .subtitle{font-size:16px;color:var(--muted);margin-bottom:32px}
+
+    /* Badges */
+    .method{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;font-family:var(--mono);margin-right:8px;vertical-align:middle}
+    .method-get{background:rgba(34,197,94,.15);color:var(--green)}
+    .method-post{background:rgba(99,102,241,.15);color:var(--accent2)}
+    .method-del{background:rgba(239,68,68,.15);color:var(--red)}
+
+    .endpoint{font-family:var(--mono);font-size:14px;color:var(--text);background:var(--bg2);padding:10px 14px;border-radius:8px;margin-bottom:16px;border:1px solid var(--border);display:flex;align-items:center;gap:8px}
+
+    /* Code blocks */
+    pre{background:var(--code-bg);border:1px solid var(--border);border-radius:10px;padding:16px;overflow-x:auto;margin:12px 0 20px;font-size:13px;line-height:1.6}
+    code{font-family:var(--mono);font-size:13px}
+    pre code{color:var(--muted)}
+    .kw{color:#c084fc}.str{color:#34d399}.num{color:#f59e0b}.cm{color:#64748b}.fn{color:#60a5fa}.key{color:#f472b6}
+
+    /* Tabs */
+    .tabs{display:flex;gap:0;margin-bottom:0}
+    .tab{padding:8px 16px;font-size:12px;cursor:pointer;background:var(--bg2);color:var(--muted);border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;transition:all .2s}
+    .tab.active{background:var(--code-bg);color:var(--text)}
+    .tab-content{display:none}.tab-content.active{display:block}
+    .tab-content pre{margin-top:0;border-top-left-radius:0;border-top-right-radius:0}
+
+    /* Table */
+    table{width:100%;border-collapse:collapse;margin:12px 0 20px}
+    th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px}
+    th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:1px}
+    td code{background:var(--bg2);padding:2px 6px;border-radius:4px;font-size:12px}
+
+    .note{background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:12px 16px;margin:12px 0 20px;font-size:13px;color:var(--accent2)}
+
+    /* Mobile */
+    .menu-toggle{display:none;position:fixed;top:12px;left:12px;z-index:20;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);cursor:pointer;font-size:18px}
+    @media(max-width:768px){
+      .sidebar{transform:translateX(-100%);transition:transform .3s}.sidebar.open{transform:translateX(0)}
+      .content{margin-left:0;padding:24px 20px}
+      .menu-toggle{display:block}
+    }
+  </style>
+</head>
+<body>
+  <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">&#9776;</button>
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span>Ailyn</span>
+      <small>API v1 Docs</small>
+    </div>
+    <nav>
+      <div class="section-title">Getting Started</div>
+      <a href="#getting-started">Introduction</a>
+      <a href="#authentication">Authentication</a>
+      <div class="section-title">Endpoints</div>
+      <a href="#chat-api">Chat API</a>
+      <a href="#inbox-api">Inbox API</a>
+      <a href="#crm-api">CRM API</a>
+      <a href="#activity-api">Activity API</a>
+      <a href="#actions-api">Actions API</a>
+      <div class="section-title">Integrations</div>
+      <a href="#webhooks">Webhooks</a>
+      <a href="#widget-sdk">Widget SDK</a>
+      <div class="section-title">Reference</div>
+      <a href="#rate-limits">Rate Limits</a>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <h1>Ailyn API Documentation</h1>
+    <p class="subtitle">Build AI-powered customer interactions with a simple REST API.</p>
+
+    <!-- Getting Started -->
+    <h2 id="getting-started">Getting Started</h2>
+    <p>The Ailyn API lets you send messages, read conversations, manage contacts, and trigger automations programmatically.</p>
+    <h3>Base URL</h3>
+    <div class="endpoint"><code>https://api.ailyn.app/v1</code></div>
+    <h3>Get your API Key</h3>
+    <p>Navigate to <a href="https://ailyn-dashboard.pages.dev/settings">Dashboard &rarr; Settings &rarr; API Keys</a> and click <strong>Create Key</strong>. Your key starts with <code>ak_</code>.</p>
+    <div class="note">Keep your API key secret. Never expose it in client-side code. Use environment variables in production.</div>
+
+    <!-- Authentication -->
+    <h2 id="authentication">Authentication</h2>
+    <p>All requests require a Bearer token in the <code>Authorization</code> header.</p>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(this,'auth')">cURL</div>
+      <div class="tab" onclick="switchTab(this,'auth')">JavaScript</div>
+    </div>
+    <div class="tab-content active" data-group="auth">
+<pre><code><span class="cm"># Include in every request</span>
+curl https://api.ailyn.app/v1/inbox \
+  -H <span class="str">"Authorization: Bearer ak_your_key_here"</span></code></pre>
+    </div>
+    <div class="tab-content" data-group="auth">
+<pre><code><span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://api.ailyn.app/v1/inbox'</span>, {
+  headers: { <span class="key">'Authorization'</span>: <span class="str">`Bearer ${API_KEY}`</span> }
+});
+<span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>();</code></pre>
+    </div>
+    <table>
+      <tr><th>Header</th><th>Value</th><th>Required</th></tr>
+      <tr><td><code>Authorization</code></td><td><code>Bearer ak_xxxx</code></td><td>Yes</td></tr>
+      <tr><td><code>Content-Type</code></td><td><code>application/json</code></td><td>For POST/PUT</td></tr>
+    </table>
+
+    <!-- Chat API -->
+    <h2 id="chat-api">Chat API</h2>
+    <div class="endpoint"><span class="method method-post">POST</span> <code>/v1/chat</code></div>
+    <p>Send a message to the AI assistant and receive a response. Supports streaming.</p>
+    <table>
+      <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+      <tr><td><code>message</code></td><td>string</td><td>The user message</td></tr>
+      <tr><td><code>conversation_id</code></td><td>string?</td><td>Continue existing conversation</td></tr>
+      <tr><td><code>stream</code></td><td>boolean?</td><td>Enable SSE streaming (default false)</td></tr>
+      <tr><td><code>metadata</code></td><td>object?</td><td>Custom metadata to attach</td></tr>
+    </table>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(this,'chat')">cURL</div>
+      <div class="tab" onclick="switchTab(this,'chat')">JavaScript</div>
+      <div class="tab" onclick="switchTab(this,'chat')">Response</div>
+    </div>
+    <div class="tab-content active" data-group="chat">
+<pre><code>curl -X POST https://api.ailyn.app/v1/chat \
+  -H <span class="str">"Authorization: Bearer ak_xxxx"</span> \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{
+    "message": "How do I reset my password?",
+    "conversation_id": "conv_abc123"
+  }'</span></code></pre>
+    </div>
+    <div class="tab-content" data-group="chat">
+<pre><code><span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://api.ailyn.app/v1/chat'</span>, {
+  method: <span class="str">'POST'</span>,
+  headers: {
+    <span class="key">'Authorization'</span>: <span class="str">`Bearer ${API_KEY}`</span>,
+    <span class="key">'Content-Type'</span>: <span class="str">'application/json'</span>
+  },
+  body: JSON.<span class="fn">stringify</span>({
+    message: <span class="str">'How do I reset my password?'</span>,
+    conversation_id: <span class="str">'conv_abc123'</span>
+  })
+});
+<span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>();</code></pre>
+    </div>
+    <div class="tab-content" data-group="chat">
+<pre><code>{
+  <span class="key">"id"</span>: <span class="str">"msg_x7k9p2"</span>,
+  <span class="key">"conversation_id"</span>: <span class="str">"conv_abc123"</span>,
+  <span class="key">"role"</span>: <span class="str">"assistant"</span>,
+  <span class="key">"content"</span>: <span class="str">"To reset your password, go to Settings..."</span>,
+  <span class="key">"created_at"</span>: <span class="str">"2026-04-01T12:00:00Z"</span>,
+  <span class="key">"tokens_used"</span>: <span class="num">142</span>
+}</code></pre>
+    </div>
+
+    <!-- Inbox API -->
+    <h2 id="inbox-api">Inbox API</h2>
+    <div class="endpoint"><span class="method method-get">GET</span> <code>/v1/inbox</code></div>
+    <p>List all conversations with pagination and filters.</p>
+    <table>
+      <tr><th>Query Param</th><th>Type</th><th>Description</th></tr>
+      <tr><td><code>status</code></td><td>string?</td><td><code>open</code> | <code>closed</code> | <code>all</code></td></tr>
+      <tr><td><code>limit</code></td><td>number?</td><td>Results per page (default 20, max 100)</td></tr>
+      <tr><td><code>cursor</code></td><td>string?</td><td>Pagination cursor</td></tr>
+    </table>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(this,'inbox')">cURL</div>
+      <div class="tab" onclick="switchTab(this,'inbox')">JavaScript</div>
+      <div class="tab" onclick="switchTab(this,'inbox')">Response</div>
+    </div>
+    <div class="tab-content active" data-group="inbox">
+<pre><code>curl https://api.ailyn.app/v1/inbox?status=open&amp;limit=10 \
+  -H <span class="str">"Authorization: Bearer ak_xxxx"</span></code></pre>
+    </div>
+    <div class="tab-content" data-group="inbox">
+<pre><code><span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://api.ailyn.app/v1/inbox?status=open&limit=10'</span>, {
+  headers: { <span class="key">'Authorization'</span>: <span class="str">`Bearer ${API_KEY}`</span> }
+});
+<span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>();</code></pre>
+    </div>
+    <div class="tab-content" data-group="inbox">
+<pre><code>{
+  <span class="key">"data"</span>: [
+    {
+      <span class="key">"id"</span>: <span class="str">"conv_abc123"</span>,
+      <span class="key">"contact"</span>: <span class="str">"Maria Lopez"</span>,
+      <span class="key">"channel"</span>: <span class="str">"widget"</span>,
+      <span class="key">"status"</span>: <span class="str">"open"</span>,
+      <span class="key">"last_message"</span>: <span class="str">"How do I upgrade?"</span>,
+      <span class="key">"updated_at"</span>: <span class="str">"2026-04-01T11:30:00Z"</span>
+    }
+  ],
+  <span class="key">"next_cursor"</span>: <span class="str">"cur_n8x2m"</span>,
+  <span class="key">"has_more"</span>: <span class="kw">true</span>
+}</code></pre>
+    </div>
+
+    <!-- CRM API -->
+    <h2 id="crm-api">CRM API</h2>
+    <div class="endpoint"><span class="method method-get">GET</span> <code>/v1/crm/:name</code></div>
+    <p>Search contacts by name, email, or phone. Returns matching CRM records.</p>
+    <table>
+      <tr><th>Path Param</th><th>Type</th><th>Description</th></tr>
+      <tr><td><code>name</code></td><td>string</td><td>Search query (name, email, or phone)</td></tr>
+    </table>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(this,'crm')">cURL</div>
+      <div class="tab" onclick="switchTab(this,'crm')">JavaScript</div>
+      <div class="tab" onclick="switchTab(this,'crm')">Response</div>
+    </div>
+    <div class="tab-content active" data-group="crm">
+<pre><code>curl https://api.ailyn.app/v1/crm/maria \
+  -H <span class="str">"Authorization: Bearer ak_xxxx"</span></code></pre>
+    </div>
+    <div class="tab-content" data-group="crm">
+<pre><code><span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://api.ailyn.app/v1/crm/maria'</span>, {
+  headers: { <span class="key">'Authorization'</span>: <span class="str">`Bearer ${API_KEY}`</span> }
+});
+<span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>();</code></pre>
+    </div>
+    <div class="tab-content" data-group="crm">
+<pre><code>{
+  <span class="key">"data"</span>: [
+    {
+      <span class="key">"id"</span>: <span class="str">"ct_m3k9"</span>,
+      <span class="key">"name"</span>: <span class="str">"Maria Lopez"</span>,
+      <span class="key">"email"</span>: <span class="str">"maria@example.com"</span>,
+      <span class="key">"phone"</span>: <span class="str">"+52 55 1234 5678"</span>,
+      <span class="key">"tags"</span>: [<span class="str">"premium"</span>, <span class="str">"active"</span>],
+      <span class="key">"conversations"</span>: <span class="num">12</span>,
+      <span class="key">"created_at"</span>: <span class="str">"2026-01-15T08:00:00Z"</span>
+    }
+  ]
+}</code></pre>
+    </div>
+
+    <!-- Activity API -->
+    <h2 id="activity-api">Activity API</h2>
+    <div class="endpoint"><span class="method method-get">GET</span> <code>/v1/activity</code></div>
+    <p>Retrieve recent activity feed: messages, events, automations, and system actions.</p>
+    <table>
+      <tr><th>Query Param</th><th>Type</th><th>Description</th></tr>
+      <tr><td><code>type</code></td><td>string?</td><td><code>message</code> | <code>automation</code> | <code>system</code> | <code>all</code></td></tr>
+      <tr><td><code>since</code></td><td>string?</td><td>ISO 8601 timestamp filter</td></tr>
+      <tr><td><code>limit</code></td><td>number?</td><td>Results per page (default 50, max 200)</td></tr>
+    </table>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(this,'activity')">cURL</div>
+      <div class="tab" onclick="switchTab(this,'activity')">JavaScript</div>
+      <div class="tab" onclick="switchTab(this,'activity')">Response</div>
+    </div>
+    <div class="tab-content active" data-group="activity">
+<pre><code>curl https://api.ailyn.app/v1/activity?type=automation&amp;limit=5 \
+  -H <span class="str">"Authorization: Bearer ak_xxxx"</span></code></pre>
+    </div>
+    <div class="tab-content" data-group="activity">
+<pre><code><span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://api.ailyn.app/v1/activity?type=automation&limit=5'</span>, {
+  headers: { <span class="key">'Authorization'</span>: <span class="str">`Bearer ${API_KEY}`</span> }
+});
+<span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>();</code></pre>
+    </div>
+    <div class="tab-content" data-group="activity">
+<pre><code>{
+  <span class="key">"data"</span>: [
+    {
+      <span class="key">"id"</span>: <span class="str">"ev_p2x8"</span>,
+      <span class="key">"type"</span>: <span class="str">"automation"</span>,
+      <span class="key">"action"</span>: <span class="str">"send_followup"</span>,
+      <span class="key">"target"</span>: <span class="str">"Maria Lopez"</span>,
+      <span class="key">"status"</span>: <span class="str">"completed"</span>,
+      <span class="key">"timestamp"</span>: <span class="str">"2026-04-01T10:15:00Z"</span>
+    }
+  ]
+}</code></pre>
+    </div>
+
+    <!-- Actions API -->
+    <h2 id="actions-api">Actions API</h2>
+    <div class="endpoint"><span class="method method-post">POST</span> <code>/v1/actions/:id/execute</code></div>
+    <p>Trigger a pre-configured automation action. Actions are created in the dashboard.</p>
+    <table>
+      <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+      <tr><td><code>id</code></td><td>string (path)</td><td>Action ID from dashboard</td></tr>
+      <tr><td><code>params</code></td><td>object?</td><td>Dynamic parameters for the action</td></tr>
+      <tr><td><code>target</code></td><td>string?</td><td>Contact ID or conversation ID</td></tr>
+    </table>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(this,'actions')">cURL</div>
+      <div class="tab" onclick="switchTab(this,'actions')">JavaScript</div>
+      <div class="tab" onclick="switchTab(this,'actions')">Response</div>
+    </div>
+    <div class="tab-content active" data-group="actions">
+<pre><code>curl -X POST https://api.ailyn.app/v1/actions/act_followup/execute \
+  -H <span class="str">"Authorization: Bearer ak_xxxx"</span> \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{
+    "target": "ct_m3k9",
+    "params": { "template": "welcome_back" }
+  }'</span></code></pre>
+    </div>
+    <div class="tab-content" data-group="actions">
+<pre><code><span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://api.ailyn.app/v1/actions/act_followup/execute'</span>, {
+  method: <span class="str">'POST'</span>,
+  headers: {
+    <span class="key">'Authorization'</span>: <span class="str">`Bearer ${API_KEY}`</span>,
+    <span class="key">'Content-Type'</span>: <span class="str">'application/json'</span>
+  },
+  body: JSON.<span class="fn">stringify</span>({
+    target: <span class="str">'ct_m3k9'</span>,
+    params: { template: <span class="str">'welcome_back'</span> }
+  })
+});
+<span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>();</code></pre>
+    </div>
+    <div class="tab-content" data-group="actions">
+<pre><code>{
+  <span class="key">"id"</span>: <span class="str">"exec_z8p3"</span>,
+  <span class="key">"action_id"</span>: <span class="str">"act_followup"</span>,
+  <span class="key">"status"</span>: <span class="str">"queued"</span>,
+  <span class="key">"estimated_at"</span>: <span class="str">"2026-04-01T12:01:00Z"</span>
+}</code></pre>
+    </div>
+
+    <!-- Webhooks -->
+    <h2 id="webhooks">Webhooks</h2>
+    <p>Receive real-time notifications when events happen in Ailyn. Configure webhooks in <a href="https://ailyn-dashboard.pages.dev/settings">Dashboard &rarr; Settings &rarr; Webhooks</a>.</p>
+    <h3>Events</h3>
+    <table>
+      <tr><th>Event</th><th>Description</th></tr>
+      <tr><td><code>conversation.created</code></td><td>New conversation started</td></tr>
+      <tr><td><code>conversation.closed</code></td><td>Conversation marked as resolved</td></tr>
+      <tr><td><code>message.received</code></td><td>New message from a contact</td></tr>
+      <tr><td><code>message.sent</code></td><td>AI or agent replied</td></tr>
+      <tr><td><code>contact.created</code></td><td>New contact added to CRM</td></tr>
+      <tr><td><code>action.completed</code></td><td>Automation action finished</td></tr>
+    </table>
+    <h3>Payload</h3>
+<pre><code>{
+  <span class="key">"event"</span>: <span class="str">"message.received"</span>,
+  <span class="key">"timestamp"</span>: <span class="str">"2026-04-01T12:05:00Z"</span>,
+  <span class="key">"data"</span>: {
+    <span class="key">"conversation_id"</span>: <span class="str">"conv_abc123"</span>,
+    <span class="key">"message"</span>: <span class="str">"I need help with billing"</span>,
+    <span class="key">"contact"</span>: { <span class="key">"id"</span>: <span class="str">"ct_m3k9"</span>, <span class="key">"name"</span>: <span class="str">"Maria Lopez"</span> }
+  }
+}</code></pre>
+    <h3>Signature Verification</h3>
+    <p>Every webhook includes an <code>X-Ailyn-Signature</code> header. Verify it using HMAC-SHA256 with your webhook secret.</p>
+<pre><code><span class="kw">import</span> crypto <span class="kw">from</span> <span class="str">'crypto'</span>;
+
+<span class="kw">function</span> <span class="fn">verifyWebhook</span>(payload, signature, secret) {
+  <span class="kw">const</span> expected = crypto
+    .<span class="fn">createHmac</span>(<span class="str">'sha256'</span>, secret)
+    .<span class="fn">update</span>(payload)
+    .<span class="fn">digest</span>(<span class="str">'hex'</span>);
+  <span class="kw">return</span> crypto.<span class="fn">timingSafeEqual</span>(
+    Buffer.<span class="fn">from</span>(signature),
+    Buffer.<span class="fn">from</span>(<span class="str">`sha256=${expected}`</span>)
+  );
+}</code></pre>
+
+    <!-- Widget SDK -->
+    <h2 id="widget-sdk">Widget SDK</h2>
+    <p>Add a chat widget to any website with a single line of code. No build tools required.</p>
+    <h3>Quick Start</h3>
+<pre><code><span class="cm">&lt;!-- Add before &lt;/body&gt; --&gt;</span>
+&lt;script
+  src=<span class="str">"https://ailyn-landing.pages.dev/widget.js"</span>
+  data-company=<span class="str">"your-company-slug"</span>
+&gt;&lt;/script&gt;</code></pre>
+    <h3>Configuration</h3>
+    <table>
+      <tr><th>Attribute</th><th>Default</th><th>Description</th></tr>
+      <tr><td><code>data-company</code></td><td><code>demo</code></td><td>Your company slug (from dashboard)</td></tr>
+      <tr><td><code>data-position</code></td><td><code>bottom-right</code></td><td><code>bottom-right</code> or <code>bottom-left</code></td></tr>
+      <tr><td><code>data-color</code></td><td><code>#6366f1</code></td><td>Brand color (hex)</td></tr>
+      <tr><td><code>data-title</code></td><td><code>Ailyn</code></td><td>Chat header title</td></tr>
+    </table>
+    <h3>Full Example</h3>
+<pre><code>&lt;script
+  src=<span class="str">"https://ailyn-landing.pages.dev/widget.js"</span>
+  data-company=<span class="str">"ailyn-labs"</span>
+  data-position=<span class="str">"bottom-left"</span>
+  data-color=<span class="str">"#8b5cf6"</span>
+  data-title=<span class="str">"Soporte Ailyn"</span>
+&gt;&lt;/script&gt;</code></pre>
+    <h3>JavaScript API</h3>
+    <p>Control the widget programmatically after it loads:</p>
+<pre><code><span class="cm">// Open the chat</span>
+window.AilynWidget.<span class="fn">open</span>();
+
+<span class="cm">// Close the chat</span>
+window.AilynWidget.<span class="fn">close</span>();
+
+<span class="cm">// Toggle open/closed</span>
+window.AilynWidget.<span class="fn">toggle</span>();
+
+<span class="cm">// Remove widget from page</span>
+window.AilynWidget.<span class="fn">destroy</span>();</code></pre>
+
+    <!-- Rate Limits -->
+    <h2 id="rate-limits">Rate Limits</h2>
+    <p>API requests are rate-limited per API key. Current limits:</p>
+    <table>
+      <tr><th>Plan</th><th>Rate Limit</th><th>Burst</th></tr>
+      <tr><td>Free</td><td>20 req/min</td><td>5 concurrent</td></tr>
+      <tr><td>Pro</td><td>100 req/min</td><td>20 concurrent</td></tr>
+      <tr><td>Enterprise</td><td>1000 req/min</td><td>100 concurrent</td></tr>
+    </table>
+    <p>Rate limit headers are included in every response:</p>
+    <table>
+      <tr><th>Header</th><th>Description</th></tr>
+      <tr><td><code>X-RateLimit-Limit</code></td><td>Max requests per window</td></tr>
+      <tr><td><code>X-RateLimit-Remaining</code></td><td>Requests remaining</td></tr>
+      <tr><td><code>X-RateLimit-Reset</code></td><td>Unix timestamp when window resets</td></tr>
+    </table>
+    <div class="note">When rate-limited, you receive a <code>429 Too Many Requests</code> response. Implement exponential backoff in your client.</div>
+
+    <div style="margin-top:60px;padding:24px 0;border-top:1px solid var(--border);text-align:center">
+      <p style="font-size:13px">Built with <span style="color:var(--accent2)">&hearts;</span> by Ailyn &mdash; <a href="https://ailyn-landing.pages.dev">ailyn.app</a></p>
+    </div>
+  </main>
+
+  <script>
+    function switchTab(el, group) {
+      var tabs = el.parentElement.querySelectorAll('.tab');
+      var contents = [];
+      var next = el.parentElement.nextElementSibling;
+      while (next && next.classList.contains('tab-content')) {
+        contents.push(next);
+        next = next.nextElementSibling;
+      }
+      var idx = Array.prototype.indexOf.call(tabs, el);
+      tabs.forEach(function(t) { t.classList.remove('active'); });
+      contents.forEach(function(c) { c.classList.remove('active'); });
+      el.classList.add('active');
+      if (contents[idx]) contents[idx].classList.add('active');
+    }
+
+    // Highlight active nav on scroll
+    var sections = document.querySelectorAll('h2[id]');
+    var navLinks = document.querySelectorAll('.sidebar nav a[href^="#"]');
+    window.addEventListener('scroll', function() {
+      var current = '';
+      sections.forEach(function(s) {
+        if (window.scrollY >= s.offsetTop - 100) current = s.id;
+      });
+      navLinks.forEach(function(a) {
+        a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+      });
+    });
+  </script>
+</body>
+</html>

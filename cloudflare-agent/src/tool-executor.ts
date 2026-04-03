@@ -62,6 +62,72 @@ async function gmailRead(token: string, maxResults = 10): Promise<unknown> {
   return { emails: emails.filter(Boolean), count: list.messages.length };
 }
 
+// ── Gmail: crear borrador ─────────────────────────────────────────────────
+
+async function gmailCreateDraft(token: string, to: string, subject: string, body: string): Promise<{ id: string }> {
+  // Gmail API requiere el email en formato RFC 2822 encoded en base64url
+  const email = [
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    `Content-Type: text/plain; charset=utf-8`,
+    "",
+    body,
+  ].join("\r\n");
+  const raw = btoa(unescape(encodeURIComponent(email))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+  const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ message: { raw } }),
+  });
+  if (!res.ok) throw new Error(`Gmail draft error ${res.status}: ${await res.text()}`);
+  return res.json() as Promise<{ id: string }>;
+}
+
+// ── Gmail: etiquetar/archivar/marcar leído ─────────────────────────────────
+
+async function gmailModifyMessage(token: string, messageId: string, addLabels: string[], removeLabels: string[]): Promise<void> {
+  const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ addLabelIds: addLabels, removeLabelIds: removeLabels }),
+  });
+  if (!res.ok) throw new Error(`Gmail modify error ${res.status}`);
+}
+
+// ── Gmail: crear etiqueta (carpeta) ───────────────────────────────────────
+
+async function gmailCreateLabel(token: string, name: string): Promise<{ id: string; name: string }> {
+  // Verificar si ya existe
+  const listRes = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/labels", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (listRes.ok) {
+    const data = await listRes.json() as { labels?: { id: string; name: string }[] };
+    const existing = (data.labels ?? []).find(l => l.name.toLowerCase() === name.toLowerCase());
+    if (existing) return existing;
+  }
+
+  const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/labels", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ name, labelListVisibility: "labelShow", messageListVisibility: "show" }),
+  });
+  if (!res.ok) throw new Error(`Gmail create label error ${res.status}`);
+  return res.json() as Promise<{ id: string; name: string }>;
+}
+
+// ── Gmail: listar etiquetas ───────────────────────────────────────────────
+
+async function gmailListLabels(token: string): Promise<{ id: string; name: string }[]> {
+  const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/labels", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return [];
+  const data = await res.json() as { labels?: { id: string; name: string; type?: string }[] };
+  return (data.labels ?? []).filter(l => l.type === "user").map(l => ({ id: l.id, name: l.name }));
+}
+
 // ── Google Calendar ────────────────────────────────────────────────────────
 
 async function calendarRead(token: string): Promise<unknown> {
@@ -167,7 +233,38 @@ export async function executeTools(
         }
 
         case "gmail_send": {
-          results.push({ tool, success: true, data: { action: "draft_ready", needs_approval: true, note: "Prepara el borrador en tu respuesta, pregunta al usuario si confirma." } });
+          if (!ctx.googleToken) { results.push({ tool, success: false, data: null, error: "Gmail no conectado." }); break; }
+          // Detectar si quiere borrador, etiquetar, archivar o marcar leído
+          const lower = ctx.userMessage.toLowerCase();
+
+          if (/\b(borrador|draft|guarda.*borrador)\b/.test(lower)) {
+            // Crear borrador
+            const emailMatch = ctx.userMessage.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
+            results.push({
+              tool, success: true,
+              data: {
+                action: "create_draft",
+                to: emailMatch?.[0] ?? null,
+                note: `El usuario quiere guardar un borrador en Gmail. Redacta el email y al final incluye:
+---BORRADOR_LISTO---
+{"to":"email@ejemplo.com","subject":"asunto","body":"contenido del email"}`,
+              },
+            });
+          } else if (/\b(etiqueta|label|carpeta|folder|clasifica|organiza)\b/.test(lower)) {
+            // Etiquetar o crear carpeta
+            const labels = await gmailListLabels(ctx.googleToken);
+            results.push({
+              tool, success: true,
+              data: { action: "manage_labels", existing_labels: labels, note: "El usuario quiere organizar emails con etiquetas. Muestra las etiquetas existentes y pregunta qué quiere hacer." },
+            });
+          } else if (/\b(archiva|archive|mover|mueve)\b/.test(lower)) {
+            results.push({
+              tool, success: true,
+              data: { action: "archive", note: "El usuario quiere archivar emails. Pregunta cuáles archivar." },
+            });
+          } else {
+            results.push({ tool, success: true, data: { action: "draft_ready", needs_approval: true, note: "Prepara el borrador en tu respuesta, pregunta al usuario si confirma." } });
+          }
           break;
         }
 
