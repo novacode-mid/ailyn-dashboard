@@ -347,9 +347,26 @@ export async function route(
   // Pre-detección por keywords antes del LLM (más confiable para acciones explícitas)
   const preDetected = preDetectTools(rawMessage);
 
-  // Optimization: skip Llama if pre-detection is confident enough
-  // Short messages without tools are always "simple", messages with tools are "medium"
+  // Optimization: skip Llama for short simple messages
+  // BUT: longer messages without detected tools might have complex intent → elevate to medium
   const shortSimple = rawMessage.length < 30 && preDetected.tools.length === 0 && !convContext.hasPendingAction;
+  const longAmbiguous = rawMessage.length > 80 && preDetected.tools.length === 0 && !convContext.hasPendingAction;
+
+  // Long ambiguous messages → Sonnet for better intent understanding
+  if (longAmbiguous) {
+    const m = MODEL_MAP.medium;
+    return {
+      routing: {
+        complexity: "medium" as TaskComplexity,
+        model: m.model,
+        provider: m.provider,
+        tools_needed: ["none"] as AvailableTool[],
+        estimated_cost: m.cost,
+      },
+      cleanMessage: rawMessage,
+    };
+  }
+
   if (shortSimple) {
     const m = MODEL_MAP.simple;
     return {
