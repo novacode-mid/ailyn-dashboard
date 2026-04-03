@@ -3164,6 +3164,95 @@ async function executeDueFollowups(env: Env): Promise<void> {
 
 // ── Scheduled handler (modo proactivo) ────────────────────────────────────
 
+// ── Análisis proactivo silencioso — guarda sugerencias, NO envía mensajes ──
+
+async function proactiveAnalysis(env: Env): Promise<void> {
+  const companies = await env.DB.prepare(`SELECT id FROM companies`).all<{ id: number }>();
+  if (!companies.results?.length) return;
+
+  for (const company of companies.results) {
+    try {
+      const cid = company.id;
+      const cidStr = String(cid);
+      const suggestions: { type: string; text: string; action?: string }[] = [];
+
+      // ── 1. Emails sin responder hace 3+ días ──────────────────────────
+      const oldEmails = await env.DB.prepare(`
+        SELECT action_data FROM pending_actions
+        WHERE company_id = ? AND action_type = 'send_email' AND status = 'executed'
+        AND executed_at <= datetime('now', '-3 days') AND executed_at >= datetime('now', '-14 days')
+        ORDER BY executed_at DESC LIMIT 5
+      `).bind(cidStr).all<{ action_data: string }>();
+
+      for (const row of (oldEmails.results ?? [])) {
+        try {
+          const data = JSON.parse(row.action_data) as { to?: string; subject?: string };
+          if (!data.to) continue;
+          const hasFollowup = await env.DB.prepare(
+            `SELECT id FROM pending_actions WHERE company_id = ? AND action_type = 'send_followup' AND status IN ('scheduled','pending') AND action_data LIKE ? LIMIT 1`
+          ).bind(cidStr, `%${data.to}%`).first();
+          if (!hasFollowup) {
+            suggestions.push({
+              type: "followup",
+              text: `Email a ${data.to} (${data.subject ?? "sin asunto"}) hace 3+ días sin follow-up`,
+              action: `Dale seguimiento a ${data.to} sobre ${data.subject ?? "el email anterior"}`,
+            });
+          }
+        } catch { /* skip */ }
+      }
+
+      // ── 2. Reuniones pasadas sin seguimiento ──────────────────────────
+      const pastMeetings = await env.DB.prepare(`
+        SELECT action_data FROM pending_actions
+        WHERE company_id = ? AND action_type = 'schedule_meeting' AND status = 'executed'
+        AND executed_at <= datetime('now', '-2 days') AND executed_at >= datetime('now', '-7 days')
+        ORDER BY executed_at DESC LIMIT 3
+      `).bind(cidStr).all<{ action_data: string }>();
+
+      for (const row of (pastMeetings.results ?? [])) {
+        try {
+          const data = JSON.parse(row.action_data) as { title?: string; attendees?: string[] };
+          const attendee = (data.attendees ?? [])[0];
+          if (!attendee) continue;
+          const hasFollowup = await env.DB.prepare(
+            `SELECT id FROM pending_actions WHERE company_id = ? AND action_type IN ('send_email','send_followup') AND created_at >= datetime('now', '-2 days') AND action_data LIKE ? LIMIT 1`
+          ).bind(cidStr, `%${attendee}%`).first();
+          if (!hasFollowup) {
+            suggestions.push({
+              type: "meeting_followup",
+              text: `Reunión "${data.title ?? "sin título"}" pasó hace días sin seguimiento`,
+              action: `Envíale un email de seguimiento a ${attendee} sobre ${data.title ?? "la reunión"}`,
+            });
+          }
+        } catch { /* skip */ }
+      }
+
+      // ── 3. Acciones pendientes olvidadas (más de 24h) ─────────────────
+      const oldPending = await env.DB.prepare(`
+        SELECT COUNT(*) as c FROM pending_actions
+        WHERE company_id = ? AND status = 'pending' AND created_at <= datetime('now', '-24 hours')
+      `).bind(cidStr).first<{ c: number }>();
+      if ((oldPending?.c ?? 0) > 0) {
+        suggestions.push({
+          type: "pending",
+          text: `${oldPending!.c} acción(es) pendiente(s) de aprobación desde hace 24h+`,
+        });
+      }
+
+      // ── Guardar sugerencias en KV (sobrescribe las anteriores) ────────
+      if (suggestions.length > 0) {
+        await env.KV.put(
+          `suggestions:${cid}`,
+          JSON.stringify(suggestions),
+          { expirationTtl: 86400 } // 24h
+        );
+      }
+    } catch (err) {
+      console.error(`[proactive] Company ${company.id} error:`, String(err));
+    }
+  }
+}
+
 async function handleScheduled(env: Env): Promise<void> {
   // Kill Switch: si el agente está pausado, saltar el ciclo
   const systemStatus = await env.KV.get("SYSTEM_STATUS");
@@ -3191,6 +3280,16 @@ async function handleScheduled(env: Env): Promise<void> {
     await monitorEmailsMultiTenant(env);
   } catch (emailErr) {
     console.error("[cron] Email monitoring error:", String(emailErr));
+  }
+
+  // ── Análisis proactivo silencioso (cada hora — guarda sugerencias, NO envía mensajes) ──
+  const nowMin = new Date().getMinutes();
+  if (nowMin < 15) {
+    try {
+      await proactiveAnalysis(env);
+    } catch (alertErr) {
+      console.error("[cron] Proactive analysis error:", String(alertErr));
+    }
   }
 
   // ── Recordatorio de leads sin atender (~1/hora: cuando los minutos son 0) ─
@@ -3439,40 +3538,34 @@ async function handleScheduled(env: Env): Promise<void> {
 // ── Email monitoring multi-tenant ──────────────────────────────────────────
 
 async function monitorEmailsMultiTenant(env: Env): Promise<void> {
-  // Buscar empresas con Google conectado + Telegram para notificar
+  // Buscar empresas con Google conectado
   const companies = await env.DB.prepare(`
-    SELECT c.id, c.name, i.access_token, i.refresh_token, i.token_expiry,
-           tc.bot_token, tc.owner_chat_id
-    FROM companies c
+    SELECT c.id, c.name FROM companies c
     JOIN integrations i ON i.company_id = c.id AND i.provider = 'google' AND i.is_active = 1
-    JOIN telegram_configs tc ON tc.company_id = c.id AND tc.is_active = 1
-    WHERE tc.owner_chat_id IS NOT NULL
-  `).all<{ id: number; name: string; access_token: string; refresh_token: string | null; token_expiry: string | null; bot_token: string; owner_chat_id: string }>();
+  `).all<{ id: number; name: string }>();
 
   if (!companies.results?.length) return;
 
   for (const company of companies.results) {
     try {
-      // Obtener token fresco
       const token = await getValidGoogleToken(env, company.id);
       if (!token) continue;
 
-      // Leer últimos 5 emails no leídos
-      const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q=is:unread`;
+      // Leer últimos 10 emails
+      const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=10&q=newer_than:1d`;
       const listRes = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       if (!listRes.ok) continue;
       const list = await listRes.json() as { messages?: { id: string }[] };
       if (!list.messages?.length) continue;
 
-      // Check cuáles ya notificamos (usar KV para tracking)
-      const notifiedKey = `email_notified:${company.id}`;
-      const notifiedStr = await env.KV.get(notifiedKey) ?? "[]";
-      const notified = new Set(JSON.parse(notifiedStr) as string[]);
+      const newEmails: { gmailId: string; from: string; fromName: string; subject: string; snippet: string }[] = [];
 
-      const newEmails: { from: string; subject: string; snippet: string }[] = [];
-
-      for (const m of list.messages.slice(0, 5)) {
-        if (notified.has(m.id)) continue;
+      for (const m of list.messages) {
+        // Skip si ya está en email_inbox
+        const exists = await env.DB.prepare(
+          `SELECT id FROM email_inbox WHERE company_id = ? AND gmail_id = ?`
+        ).bind(company.id, m.id).first();
+        if (exists) continue;
 
         const msgRes = await fetch(
           `https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`,
@@ -3483,52 +3576,66 @@ async function monitorEmailsMultiTenant(env: Env): Promise<void> {
         const headers = msg.payload?.headers ?? [];
         const from = headers.find(h => h.name === "From")?.value ?? "Desconocido";
         const subject = headers.find(h => h.name === "Subject")?.value ?? "(sin asunto)";
+        const fromName = from.split("<")[0].trim().replace(/"/g, "");
 
-        newEmails.push({ from, subject, snippet: msg.snippet?.slice(0, 100) ?? "" });
-        notified.add(m.id);
+        newEmails.push({ gmailId: m.id, from, fromName, subject, snippet: msg.snippet?.slice(0, 200) ?? "" });
       }
 
-      if (newEmails.length > 0) {
-        // Clasificar urgencia con Llama (gratis)
-        const emailList = newEmails.map((e, i) => `${i + 1}. De: ${e.from} | Asunto: ${e.subject} | ${e.snippet}`).join("\n");
+      if (newEmails.length === 0) continue;
 
-        const classResult = await env.AI.run(
-          "@cf/meta/llama-3.2-3b-instruct" as Parameters<typeof env.AI.run>[0],
-          {
-            messages: [{
-              role: "user",
-              content: `Clasifica estos emails por urgencia. Responde SOLO con los números de los URGENTES o que REQUIEREN ACCIÓN (no informativos ni newsletters). Si ninguno es urgente, responde "ninguno".\n\n${emailList}`,
-            }],
-            max_tokens: 64,
-          }
-        ) as { response?: unknown };
+      // Clasificar TODOS los emails nuevos con Llama (gratis)
+      const emailList = newEmails.map((e, i) =>
+        `${i + 1}. De: ${e.fromName} | Asunto: ${e.subject} | ${e.snippet.slice(0, 80)}`
+      ).join("\n");
 
-        const urgentResponse = String(classResult.response ?? "ninguno").toLowerCase();
-        const hasUrgent = urgentResponse !== "ninguno" && /\d/.test(urgentResponse);
+      const classResult = await env.AI.run(
+        "@cf/meta/llama-3.2-3b-instruct" as Parameters<typeof env.AI.run>[0],
+        {
+          messages: [{
+            role: "user",
+            content: `Clasifica cada email en UNA categoría. Responde SOLO con JSON array, sin nada más.
 
-        // Notificar
-        const lines = newEmails.map((e, i) => {
-          const isUrgent = urgentResponse.includes(String(i + 1));
-          return `${isUrgent ? "🔴" : "📩"} <b>${e.from.split("<")[0].trim()}</b>\n   ${e.subject}`;
-        });
+Categorías:
+- urgent: requiere acción inmediata (pagos, problemas, clientes pidiendo algo)
+- action: requiere respuesta pero no es urgente
+- info: newsletters útiles, reportes, actualizaciones informativas
+- social: redes sociales, notificaciones de apps
+- spam: marketing no solicitado, promociones, suscripciones
 
-        const notification = [
-          `📬 <b>${newEmails.length} email${newEmails.length > 1 ? "s" : ""} nuevo${newEmails.length > 1 ? "s" : ""}</b>`,
-          "",
-          ...lines,
-          "",
-          hasUrgent ? '⚡ Hay emails urgentes. Dime "resúmeme los emails" para más detalle.' : 'Dime "qué emails tengo?" para un resumen completo.',
-        ].join("\n");
+También sugiere una acción para cada uno: responder, archivar, dar_followup, ignorar
 
-        await fetch(`https://api.telegram.org/bot${company.bot_token}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: Number(company.owner_chat_id), text: notification, parse_mode: "HTML" }),
-        });
+Emails:
+${emailList}
 
-        // Guardar IDs notificados (mantener últimos 50, TTL 24h)
-        const allNotified = [...notified].slice(-50);
-        await env.KV.put(notifiedKey, JSON.stringify(allNotified), { expirationTtl: 86400 });
+JSON (solo esto):
+[{"n":1,"cat":"urgent","act":"responder"},{"n":2,"cat":"spam","act":"ignorar"}]`,
+          }],
+          max_tokens: 256,
+        }
+      ) as { response?: unknown };
+
+      // Parse classification
+      const rawClass = String(classResult.response ?? "[]");
+      let classifications: { n: number; cat: string; act: string }[] = [];
+      try {
+        const jsonMatch = rawClass.match(/\[[\s\S]*\]/);
+        if (jsonMatch) classifications = JSON.parse(jsonMatch[0]);
+      } catch { /* use defaults */ }
+
+      const catMap: Record<string, number> = { urgent: 1, action: 2, info: 3, social: 4, spam: 5 };
+
+      // Guardar cada email clasificado
+      for (let i = 0; i < newEmails.length; i++) {
+        const e = newEmails[i];
+        const cl = classifications.find(c => c.n === i + 1);
+        const category = cl?.cat ?? "other";
+        const priority = catMap[category] ?? 3;
+        const action = cl?.act ?? "revisar";
+
+        await env.DB.prepare(
+          `INSERT OR IGNORE INTO email_inbox (company_id, gmail_id, from_address, from_name, subject, snippet, category, priority, action_suggested)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(company.id, e.gmailId, e.from, e.fromName, e.subject, e.snippet, category, priority, action).run();
       }
     } catch (err) {
       console.error(`[email-monitor] Company ${company.id} error:`, String(err));

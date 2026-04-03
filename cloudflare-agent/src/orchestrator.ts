@@ -9,6 +9,7 @@ import { executeTools, formatToolResults } from "./tool-executor";
 import type { ExecutionContext } from "./tool-executor";
 import { getPlanLLMProvider } from "./usage";
 import { getCompanyFeatures, isToolAllowed, getBlockedMessage } from "./features";
+import { loadMemory, detectLearningIntent, saveFact } from "./memory";
 
 export interface OrchestratorInput {
   message: string;
@@ -201,7 +202,7 @@ async function callOpenAIModel(
 
 // ── System prompt ──────────────────────────────────────────────────────────
 
-function buildSystemPrompt(input: OrchestratorInput, toolContext: string): string {
+function buildSystemPrompt(input: OrchestratorInput, toolContext: string, memoryContext = ""): string {
   const now = new Date().toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
 
   // Add conversation context summary for reference resolution
@@ -286,6 +287,7 @@ Si el usuario pide MÚLTIPLES acciones en un solo mensaje (ej: "envía email Y a
 2. Al final de tu respuesta, lista las acciones pendientes con: ---PENDIENTES: acción1, acción2---
 Ejemplo: Si pidió email + reunión + followup, primero redacta el email con ---EMAIL_LISTO--- y al final agrega:
 ---PENDIENTES: agendar reunión con Pedro el jueves a las 3pm, follow-up en 3 días a pedro@smartpasses.io---
+${memoryContext}
 ${historyContext}
 ${toolContext}`;
 }
@@ -438,8 +440,11 @@ export async function orchestrate(
 
   const toolContext = formatToolResults(toolResults) + blockedContext;
 
+  // 3.7 Cargar memoria de la empresa
+  const memoryContext = await loadMemory(env, input.companyId);
+
   // 4. Generar respuesta con el modelo seleccionado
-  const systemPrompt = buildSystemPrompt(input, toolContext);
+  const systemPrompt = buildSystemPrompt(input, toolContext, memoryContext);
   const history = input.history ?? [];
 
   let responseText: string;
@@ -557,6 +562,12 @@ export async function orchestrate(
   if (isSimpleNoTools && !emailDraft && !calendarDraft && !followupDraft && !noteDraft && responseText.length < 2000) {
     const cacheKey = `cache:${input.companyId}:${cleanMessage.toLowerCase().trim().slice(0, 100)}`;
     env.KV.put(cacheKey, responseText, { expirationTtl: 3600 }).catch(() => {});
+  }
+
+  // 10. Detectar si el usuario enseñó algo → guardar en memoria
+  const learning = detectLearningIntent(cleanMessage, responseText, input.history ?? []);
+  if (learning.shouldLearn && learning.fact) {
+    saveFact(env, input.companyId, learning.fact, learning.category).catch(() => {});
   }
 
   const duration = Date.now() - start;

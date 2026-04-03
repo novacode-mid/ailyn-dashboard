@@ -24,7 +24,9 @@ export type AvailableTool =
   | "schedule_followup"
   | "crm_lookup"
   | "action_control"
-  | "save_note";
+  | "save_note"
+  | "get_suggestions"
+  | "inbox_organized";
 
 export interface RoutingDecision {
   complexity: TaskComplexity;
@@ -116,14 +118,19 @@ function preDetectTools(message: string): { tools: AvailableTool[] } {
     tools.push("crm_lookup");
   }
 
-  // Email summary / read inbox: cualquier pregunta sobre emails recibidos
+  // Email summary / organized inbox
   const wantsReadEmail = /\b(emails?|correos?|inbox|bandeja|gmail)\b/.test(lower)
-    && /\b(important|resumen|resume|resum[ií]|tengo|lleg[óo]|nuevos?|pendientes?|sin leer|recib[ií]|hay|lee|leer|muestra|ver|revisa)\b/.test(lower);
-  // También detectar preguntas directas tipo "qué emails tengo?" o "revisa mi correo"
-  const wantsReadEmail2 = /\b(qu[ée]|cu[áa]les|rev[ií]sa|lee|muestra|dame)\b/.test(lower)
+    && /\b(important|resumen|resume|resum[ií]|tengo|lleg[óo]|nuevos?|pendientes?|sin leer|recib[ií]|hay|lee|leer|muestra|ver|revisa|organiza|clasifica|urgent|spam)\b/.test(lower);
+  const wantsReadEmail2 = /\b(qu[ée]|cu[áa]les|rev[ií]sa|lee|muestra|dame|organiza)\b/.test(lower)
     && /\b(emails?|correos?|inbox|bandeja|gmail)\b/.test(lower);
   if (wantsReadEmail || wantsReadEmail2) {
     tools.push("gmail_read");
+    tools.push("inbox_organized");
+  }
+
+  // Suggestions: pendientes, recomendaciones, qué hacer
+  if (/\b(pendiente|recomiend|sugier|qu[ée] (hago|hacer|debo|tengo pendiente|me toca)|priorid|siguiente paso)\b/.test(lower)) {
+    tools.push("get_suggestions");
   }
 
   // Web search: buscar en internet
@@ -159,7 +166,7 @@ Complejidad:
 - complex: análisis estratégico, planificación multi-paso, comparar opciones con razonamiento profundo, decisiones de negocio
 
 Herramientas disponibles:
-none, gmail_read, gmail_send, send_email, calendar_read, calendar_write, github, desktop_screenshot, desktop_scrape, desktop_download, desktop_fill_form, web_search, rag_search, prospect_research, tasks_manage, schedule_followup, crm_lookup, action_control, save_note
+none, gmail_read, gmail_send, send_email, calendar_read, calendar_write, github, desktop_screenshot, desktop_scrape, desktop_download, desktop_fill_form, web_search, rag_search, prospect_research, tasks_manage, schedule_followup, crm_lookup, action_control, save_note, get_suggestions, inbox_organized
 
 Usa send_email cuando el usuario quiere enviar un correo/email (detecta frases como "envíale a fulano@...", "mándale un correo a...", "escríbele a...@...", o cualquier variación natural que implique enviar un mensaje a una dirección de email).
 Usa calendar_write cuando el usuario quiere agendar, programar una reunión, cita, llamada o evento (frases como "agéndame con...", "programa una reunión", "ponme una cita el jueves").

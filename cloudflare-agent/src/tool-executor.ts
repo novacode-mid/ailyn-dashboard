@@ -410,6 +410,84 @@ Formato: cronológico, claro, con emojis por tipo de acción (📧 email, 📅 r
           break;
         }
 
+        case "inbox_organized": {
+          // Cargar inbox clasificado de D1
+          const inbox = await env.DB.prepare(
+            `SELECT from_name, subject, snippet, category, priority, action_suggested, created_at
+             FROM email_inbox WHERE company_id = ?
+             ORDER BY priority ASC, created_at DESC LIMIT 15`
+          ).bind(ctx.companyId).all<{ from_name: string; subject: string; snippet: string; category: string; priority: number; action_suggested: string; created_at: string }>();
+
+          const emails = inbox.results ?? [];
+          const grouped: Record<string, typeof emails> = {};
+          for (const e of emails) {
+            if (!grouped[e.category]) grouped[e.category] = [];
+            grouped[e.category].push(e);
+          }
+
+          results.push({
+            tool,
+            success: true,
+            data: {
+              total: emails.length,
+              grouped,
+              note: `Presenta el inbox organizado por categoría. Formato:
+
+🔴 **Urgentes** (requieren acción inmediata)
+- [remitente]: [asunto] → Acción: [sugerida]
+
+🟡 **Requieren respuesta**
+- [remitente]: [asunto] → Acción: [sugerida]
+
+📄 **Informativos**
+- [remitente]: [asunto]
+
+🔕 **Social / Spam** (X emails filtrados)
+
+Al final: "¿Quieres que responda alguno o archive los spam?"`,
+            },
+          });
+          break;
+        }
+
+        case "get_suggestions": {
+          // Cargar sugerencias proactivas desde KV
+          const suggestionsRaw = await env.KV.get(`suggestions:${ctx.companyId}`);
+          const suggestions = suggestionsRaw ? JSON.parse(suggestionsRaw) as { type: string; text: string; action?: string }[] : [];
+
+          // También cargar acciones pendientes
+          const pendingCount = await env.DB.prepare(
+            `SELECT COUNT(*) as c FROM pending_actions WHERE company_id = ? AND status = 'pending'`
+          ).bind(String(ctx.companyId)).first<{ c: number }>();
+
+          // Cargar follow-ups programados
+          const scheduledFollowups = await env.DB.prepare(
+            `SELECT action_data, followup_scheduled_at FROM pending_actions WHERE company_id = ? AND action_type = 'send_followup' AND status = 'scheduled' ORDER BY followup_scheduled_at ASC LIMIT 5`
+          ).bind(String(ctx.companyId)).all<{ action_data: string; followup_scheduled_at: string }>();
+
+          const followups = (scheduledFollowups.results ?? []).map(r => {
+            try { const d = JSON.parse(r.action_data) as { to?: string; subject?: string }; return `${d.to}: ${d.subject} (${r.followup_scheduled_at})`; }
+            catch { return null; }
+          }).filter(Boolean);
+
+          results.push({
+            tool,
+            success: true,
+            data: {
+              suggestions,
+              pending_approvals: pendingCount?.c ?? 0,
+              scheduled_followups: followups,
+              note: `Presenta las sugerencias y pendientes al usuario como un briefing ejecutivo:
+1. Si hay sugerencias proactivas, preséntalas con emojis y acciones claras
+2. Si hay acciones pendientes de aprobación, mencionarlas
+3. Si hay follow-ups programados, listar próximos
+4. Si no hay nada pendiente, decir "Todo al día 👍"
+5. Para cada sugerencia con action, ofrece ejecutarla: "¿Quieres que [acción]?"`,
+            },
+          });
+          break;
+        }
+
         case "save_note": {
           // Extract URL from message
           const urlMatch = ctx.userMessage.match(/https?:\/\/[^\s]+/);
