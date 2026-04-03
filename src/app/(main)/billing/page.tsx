@@ -129,10 +129,31 @@ export default function BillingPage() {
 
   const rank = data ? currentRank(data.plan.name) : 0;
 
-  function handlePlanClick(planId: string) {
+  const [upgrading, setUpgrading] = useState<string | null>(null);
+
+  async function handlePlanClick(planId: string) {
     const targetRank = PLAN_RANK[planId] ?? 0;
     if (targetRank === rank) return;
-    setToast("Proximamente disponible");
+    if (targetRank < rank) { setToast("Para hacer downgrade contacta soporte"); return; }
+
+    setUpgrading(planId);
+    try {
+      const res = await fetch(`${WORKER_URL}/api/billing/checkout`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ plan: planId }),
+      });
+      const result = await res.json() as { url?: string; error?: string };
+      if (!res.ok || !result.url) {
+        setToast(result.error ?? "Error al crear checkout");
+        return;
+      }
+      window.location.href = result.url;
+    } catch {
+      setToast("Error al conectar con el servidor");
+    } finally {
+      setUpgrading(null);
+    }
   }
 
   return (

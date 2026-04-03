@@ -11,7 +11,9 @@ import {
   BookOpen,
   CreditCard,
   MessageSquare,
+  MessagesSquare,
   Bot,
+  Monitor,
   Settings,
   Wallet,
   LogOut,
@@ -19,15 +21,17 @@ import {
 } from "lucide-react";
 
 const NAV = [
-  { href: "/dashboard",    label: "Dashboard",        icon: LayoutDashboard },
-  { href: "/activity",     label: "Actividad",        icon: Target },
-  { href: "/leads",        label: "Leads",            icon: Zap },
-  { href: "/knowledge",    label: "Knowledge Base",   icon: BookOpen },
-  { href: "/wallet",       label: "Tarjetas",         icon: Wallet },
-  { href: "/wallet-chat",  label: "Web Chat",         icon: MessageSquare },
-  { href: "/automations",  label: "Automatizaciones", icon: Bot },
-  { href: "/billing",      label: "Billing",          icon: CreditCard },
-  { href: "/settings",     label: "Configuración",    icon: Settings },
+  { href: "/dashboard",      label: "Dashboard",        icon: LayoutDashboard },
+  { href: "/conversations",  label: "Conversaciones",   icon: MessagesSquare },
+  { href: "/activity",       label: "Actividad",        icon: Target },
+  { href: "/leads",          label: "Leads",            icon: Zap },
+  { href: "/knowledge",      label: "Knowledge Base",   icon: BookOpen },
+  { href: "/wallet",         label: "Tarjetas",         icon: Wallet },
+  { href: "/wallet-chat",    label: "Web Chat",         icon: MessageSquare },
+  { href: "/automations",    label: "Automatizaciones", icon: Bot },
+  { href: "/desktop-tasks",  label: "Desktop Agent",    icon: Monitor },
+  { href: "/billing",        label: "Billing",          icon: CreditCard },
+  { href: "/settings",       label: "Configuración",    icon: Settings },
 ];
 
 export default function DashboardShell({ children }: { children: ReactNode }) {

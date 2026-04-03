@@ -31,8 +31,10 @@ export interface Env {
   GOOGLE_CLIENT_SECRET: string;
   // GitHub (opcional — PAT por tenant en KV o global)
   GITHUB_TOKEN?: string;
-  // Polar webhook (pagos / suscripciones)
+  // Polar (pagos / suscripciones)
   POLAR_WEBHOOK_SECRET?: string;
+  POLAR_ACCESS_TOKEN?: string;
+  POLAR_ORG_ID?: string;
   // WhatsApp Cloud API (optional)
   WHATSAPP_APP_SECRET?: string;
 }

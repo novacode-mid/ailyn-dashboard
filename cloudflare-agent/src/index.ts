@@ -25,6 +25,7 @@ import { appendHistory, clearHistory, getHistory } from "./kv";
 import { sendPushNotification } from "./smartpasses";
 import { registerWebhook, sendMessage } from "./telegram";
 import { saveIntegration } from "./integrations-hub";
+import { createCheckout, handlePolarWebhook } from "./billing";
 import type { Env, TelegramUpdate } from "./types";
 
 // ── CORS ──────────────────────────────────────────────────────────────────
@@ -3230,6 +3231,59 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
     } catch (err) {
       console.error("Dashboard summary error:", err);
       return corsResponse(JSON.stringify({ error: "Error al obtener resumen del dashboard" }), 500, undefined, request);
+    }
+  }
+
+  // GET /api/conversations — listar sesiones de chat agrupadas
+  if (request.method === "GET" && pathname === "/api/conversations") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    const channel = new URL(request.url).searchParams.get("channel");
+    const query = channel
+      ? `SELECT session_id, channel, MIN(created_at) as first_msg, MAX(created_at) as last_msg, COUNT(*) as msg_count
+         FROM conversation_history WHERE company_id = ? AND channel = ? GROUP BY session_id ORDER BY last_msg DESC LIMIT 50`
+      : `SELECT session_id, channel, MIN(created_at) as first_msg, MAX(created_at) as last_msg, COUNT(*) as msg_count
+         FROM conversation_history WHERE company_id = ? GROUP BY session_id ORDER BY last_msg DESC LIMIT 50`;
+
+    const params = channel ? [user.company_id, channel] : [user.company_id];
+    const rows = await env.DB.prepare(query).bind(...params).all();
+    return corsResponse(JSON.stringify({ sessions: rows.results ?? [] }), 200, undefined, request);
+  }
+
+  // GET /api/conversations/:sessionId — mensajes de una sesion
+  const convMatch = pathname.match(/^\/api\/conversations\/(.+)$/);
+  if (request.method === "GET" && convMatch) {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    const sessionId = decodeURIComponent(convMatch[1]);
+    const rows = await env.DB.prepare(
+      `SELECT role, content, model_used, tools_used, complexity, created_at
+       FROM conversation_history WHERE company_id = ? AND session_id = ? ORDER BY created_at ASC LIMIT 200`
+    ).bind(user.company_id, sessionId).all();
+    return corsResponse(JSON.stringify({ messages: rows.results ?? [] }), 200, undefined, request);
+  }
+
+  // POST /api/billing/checkout — crear sesion de pago
+  if (request.method === "POST" && pathname === "/api/billing/checkout") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    let body: { plan?: string };
+    try { body = await request.json(); } catch { return corsResponse(JSON.stringify({ error: "Invalid JSON" }), 400, undefined, request); }
+
+    const validPlans = new Set(["starter", "pro", "enterprise"]);
+    if (!body.plan || !validPlans.has(body.plan)) {
+      return corsResponse(JSON.stringify({ error: "Plan inválido" }), 400, undefined, request);
+    }
+
+    try {
+      const result = await createCheckout(env, user.company_id, body.plan, "https://ailyn-dashboard.pages.dev/billing?success=true");
+      return corsResponse(JSON.stringify({ url: result.url, id: result.id }), 200, undefined, request);
+    } catch (err) {
+      console.error("[billing] checkout error:", String(err));
+      return corsResponse(JSON.stringify({ error: "Error al crear checkout. Verifica la configuración de Polar." }), 500, undefined, request);
     }
   }
 
