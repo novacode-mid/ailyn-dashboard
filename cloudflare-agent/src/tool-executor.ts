@@ -5,6 +5,13 @@ import type { Env } from "./types";
 import type { AvailableTool } from "./llm-smart-router";
 import { searchWeb } from "./web-search";
 import { createDesktopTask } from "./desktop-tasks";
+import {
+  getIntegrationToken,
+  slackListChannels,
+  notionSearch,
+  hubspotSearchContacts,
+  shopifyGetOrders, shopifyGetProducts,
+} from "./integrations-hub";
 
 export interface ToolResult {
   tool: AvailableTool;
@@ -694,6 +701,131 @@ Genera una nota con este formato EXACTO (es para Obsidian):
 ## Acción
 [Qué puedo hacer con esta información]
 ---FIN_NOTA---`,
+            },
+          });
+          break;
+        }
+
+        case "slack": {
+          const creds = await getIntegrationToken(env, ctx.companyId, "slack");
+          if (!creds) { results.push({ tool, success: false, data: null, error: "Slack no conectado. Conecta tu workspace en Settings → Integraciones." }); break; }
+
+          // Detect if listing channels or sending message
+          const wantsList = /\b(canales|channels|lista)\b/i.test(ctx.userMessage);
+          if (wantsList) {
+            const channels = await slackListChannels(creds.access_token);
+            results.push({ tool, success: true, data: { channels, note: "Lista los canales disponibles de Slack al usuario." } });
+          } else {
+            // Extract channel and message from user intent
+            const channelMatch = ctx.userMessage.match(/#(\w+)/);
+            const channel = channelMatch ? channelMatch[1] : (creds.extra_data.default_channel as string ?? "general");
+            results.push({
+              tool, success: true,
+              data: {
+                action: "slack_send",
+                channel,
+                note: `El usuario quiere enviar un mensaje a Slack canal #${channel}. Redacta el mensaje y al final incluye:
+---SLACK_LISTO---
+{"channel":"${channel}","message":"el mensaje a enviar"}`,
+              },
+            });
+          }
+          break;
+        }
+
+        case "notion": {
+          const creds = await getIntegrationToken(env, ctx.companyId, "notion");
+          if (!creds) { results.push({ tool, success: false, data: null, error: "Notion no conectado. Conecta tu workspace en Settings → Integraciones." }); break; }
+
+          const wantsSearch = /\b(busca|encuentra|search)\b/i.test(ctx.userMessage);
+          if (wantsSearch) {
+            const query = ctx.userMessage.replace(/\b(busca|encuentra|search|en|notion)\b/gi, "").trim();
+            const results_notion = await notionSearch(creds.access_token, query || ctx.userMessage);
+            results.push({ tool, success: true, data: { pages: results_notion, note: "Muestra los resultados de búsqueda en Notion al usuario." } });
+          } else {
+            const parentId = creds.extra_data.default_page_id as string ?? "";
+            results.push({
+              tool, success: true,
+              data: {
+                action: "notion_create",
+                parent_id: parentId,
+                note: `El usuario quiere crear una página en Notion. Genera el contenido y al final incluye:
+---NOTION_LISTO---
+{"title":"título de la página","content":"contenido de la página"}`,
+              },
+            });
+          }
+          break;
+        }
+
+        case "hubspot": {
+          const creds = await getIntegrationToken(env, ctx.companyId, "hubspot");
+          if (!creds) { results.push({ tool, success: false, data: null, error: "HubSpot no conectado. Conecta tu CRM en Settings → Integraciones." }); break; }
+
+          const wantsSearch = /\b(busca|encuentra|search|info)\b/i.test(ctx.userMessage);
+          const wantsDeal = /\b(deal|negocio|oportunidad|venta)\b/i.test(ctx.userMessage);
+
+          if (wantsSearch) {
+            const query = ctx.userMessage.replace(/\b(busca|encuentra|search|en|hubspot|contacto|info|de)\b/gi, "").trim();
+            const contacts = await hubspotSearchContacts(creds.access_token, query || "");
+            results.push({ tool, success: true, data: { contacts, note: "Muestra los contactos encontrados en HubSpot." } });
+          } else if (wantsDeal) {
+            results.push({
+              tool, success: true,
+              data: {
+                action: "hubspot_deal",
+                note: `El usuario quiere crear un deal/negocio en HubSpot. Extrae nombre del deal y monto del mensaje. Al final incluye:
+---HUBSPOT_DEAL---
+{"name":"nombre del deal","amount":0,"contact_email":"email@si-hay.com"}`,
+              },
+            });
+          } else {
+            // Create contact
+            const emailMatch = ctx.userMessage.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
+            results.push({
+              tool, success: true,
+              data: {
+                action: "hubspot_contact",
+                email: emailMatch?.[0] ?? null,
+                note: `El usuario quiere crear/actualizar un contacto en HubSpot. Extrae nombre, email y empresa. Al final incluye:
+---HUBSPOT_CONTACT---
+{"email":"email@ejemplo.com","firstName":"Nombre","lastName":"Apellido","company":"Empresa"}`,
+              },
+            });
+          }
+          break;
+        }
+
+        case "shopify": {
+          const creds = await getIntegrationToken(env, ctx.companyId, "shopify");
+          if (!creds) { results.push({ tool, success: false, data: null, error: "Shopify no conectado. Conecta tu tienda en Settings → Integraciones." }); break; }
+          const shop = creds.extra_data.shop as string ?? "";
+
+          const wantsProducts = /\b(producto|products?|inventario|catálogo)\b/i.test(ctx.userMessage);
+          if (wantsProducts) {
+            const products = await shopifyGetProducts(creds.access_token, shop, 5);
+            results.push({ tool, success: true, data: { products, note: "Muestra los productos de Shopify al usuario." } });
+          } else {
+            const orders = await shopifyGetOrders(creds.access_token, shop, 5);
+            results.push({ tool, success: true, data: { orders, note: "Muestra los últimos pedidos de Shopify al usuario." } });
+          }
+          break;
+        }
+
+        case "make_trigger": {
+          const creds = await getIntegrationToken(env, ctx.companyId, "make");
+          if (!creds) { results.push({ tool, success: false, data: null, error: "Make.com no conectado. Agrega tu webhook URL en Settings → Integraciones." }); break; }
+          const webhookUrl = creds.access_token; // The "token" stores the webhook URL for Make
+
+          results.push({
+            tool, success: true,
+            data: {
+              action: "make_trigger",
+              webhook_url: webhookUrl,
+              note: `El usuario quiere disparar una automatización en Make.com. Extrae los datos relevantes del mensaje y al final incluye:
+---MAKE_LISTO---
+{"action":"descripción de la acción","data":{"key":"value"}}
+El sistema enviará estos datos al webhook de Make.com.`,
             },
           });
           break;

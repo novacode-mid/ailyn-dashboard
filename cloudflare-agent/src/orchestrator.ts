@@ -307,6 +307,12 @@ Cuando el usuario pida organizar, etiquetar o clasificar emails:
 2. Ofrece acciones: archivar spam, crear etiquetas, mover a carpetas
 3. Ejecuta las acciones que el usuario confirme
 
+## Integraciones externas
+Cuando el usuario pida acciones en Slack, Notion, HubSpot, Shopify o Make.com:
+1. Si hay datos del tool, ejecuta la acción con el marcador correspondiente
+2. Marcadores: ---SLACK_LISTO---, ---NOTION_LISTO---, ---HUBSPOT_CONTACT---, ---HUBSPOT_DEAL---, ---MAKE_LISTO---
+3. Siempre confirma al usuario qué se hizo después de ejecutar
+
 ## CRM conversacional
 Cuando el usuario pregunte por un contacto ("qué pasó con Pedro?", "historial de SmartPasses"):
 1. Revisa los datos de crm_lookup en las herramientas
@@ -616,6 +622,110 @@ export async function orchestrate(
       }
     } else {
       responseText = parts[0]?.trim() ?? responseText;
+    }
+  }
+
+  // 9.6 Execute Slack message if ---SLACK_LISTO--- marker present
+  if (responseText.includes("---SLACK_LISTO---")) {
+    const parts = responseText.split("---SLACK_LISTO---");
+    const jsonStr = parts[1]?.trim();
+    if (jsonStr) {
+      try {
+        const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const { channel, message } = JSON.parse(jsonMatch[0]) as { channel: string; message: string };
+          const { getIntegrationToken, slackSendMessage } = await import("./integrations-hub");
+          const creds = await getIntegrationToken(env, input.companyId, "slack");
+          if (creds) {
+            const ok = await slackSendMessage(creds.access_token, channel, message);
+            responseText = parts[0]?.trim() + (ok ? `\n\n✅ Mensaje enviado a #${channel} en Slack` : "\n\n⚠️ Error al enviar a Slack");
+          }
+        }
+      } catch (e) { console.error("[orchestrator] Slack error:", String(e)); responseText = parts[0]?.trim() ?? responseText; }
+    }
+  }
+
+  // 9.7 Execute Notion page creation if ---NOTION_LISTO--- marker present
+  if (responseText.includes("---NOTION_LISTO---")) {
+    const parts = responseText.split("---NOTION_LISTO---");
+    const jsonStr = parts[1]?.trim();
+    if (jsonStr) {
+      try {
+        const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const { title, content } = JSON.parse(jsonMatch[0]) as { title: string; content: string };
+          const { getIntegrationToken, notionCreatePage } = await import("./integrations-hub");
+          const creds = await getIntegrationToken(env, input.companyId, "notion");
+          if (creds) {
+            const parentId = (creds.extra_data as Record<string, unknown>).default_page_id as string ?? "";
+            if (parentId) {
+              const page = await notionCreatePage(creds.access_token, parentId, title, content);
+              responseText = parts[0]?.trim() + `\n\n✅ Página creada en Notion: ${page.url ?? title}`;
+            } else {
+              responseText = parts[0]?.trim() + "\n\n⚠️ Configura el default_page_id de Notion en Settings.";
+            }
+          }
+        }
+      } catch (e) { console.error("[orchestrator] Notion error:", String(e)); responseText = parts[0]?.trim() ?? responseText; }
+    }
+  }
+
+  // 9.8 Execute HubSpot actions
+  if (responseText.includes("---HUBSPOT_CONTACT---")) {
+    const parts = responseText.split("---HUBSPOT_CONTACT---");
+    const jsonStr = parts[1]?.trim();
+    if (jsonStr) {
+      try {
+        const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const { email, firstName, lastName, company } = JSON.parse(jsonMatch[0]) as { email: string; firstName: string; lastName: string; company?: string };
+          const { getIntegrationToken, hubspotCreateContact } = await import("./integrations-hub");
+          const creds = await getIntegrationToken(env, input.companyId, "hubspot");
+          if (creds) {
+            await hubspotCreateContact(creds.access_token, email, firstName, lastName, company);
+            responseText = parts[0]?.trim() + `\n\n✅ Contacto creado en HubSpot: ${firstName} ${lastName} (${email})`;
+          }
+        }
+      } catch (e) { console.error("[orchestrator] HubSpot error:", String(e)); responseText = parts[0]?.trim() ?? responseText; }
+    }
+  }
+
+  if (responseText.includes("---HUBSPOT_DEAL---")) {
+    const parts = responseText.split("---HUBSPOT_DEAL---");
+    const jsonStr = parts[1]?.trim();
+    if (jsonStr) {
+      try {
+        const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const { name, amount } = JSON.parse(jsonMatch[0]) as { name: string; amount: number };
+          const { getIntegrationToken, hubspotCreateDeal } = await import("./integrations-hub");
+          const creds = await getIntegrationToken(env, input.companyId, "hubspot");
+          if (creds) {
+            await hubspotCreateDeal(creds.access_token, name, amount);
+            responseText = parts[0]?.trim() + `\n\n✅ Deal creado en HubSpot: ${name} ($${amount})`;
+          }
+        }
+      } catch (e) { console.error("[orchestrator] HubSpot deal error:", String(e)); responseText = parts[0]?.trim() ?? responseText; }
+    }
+  }
+
+  // 9.9 Execute Make.com trigger
+  if (responseText.includes("---MAKE_LISTO---")) {
+    const parts = responseText.split("---MAKE_LISTO---");
+    const jsonStr = parts[1]?.trim();
+    if (jsonStr) {
+      try {
+        const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const payload = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+          const { getIntegrationToken, makeTriggerScenario } = await import("./integrations-hub");
+          const creds = await getIntegrationToken(env, input.companyId, "make");
+          if (creds) {
+            const ok = await makeTriggerScenario(creds.access_token, payload);
+            responseText = parts[0]?.trim() + (ok ? "\n\n✅ Automatización disparada en Make.com" : "\n\n⚠️ Error al disparar Make.com");
+          }
+        }
+      } catch (e) { console.error("[orchestrator] Make error:", String(e)); responseText = parts[0]?.trim() ?? responseText; }
     }
   }
 

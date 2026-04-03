@@ -26,7 +26,12 @@ export type AvailableTool =
   | "action_control"
   | "save_note"
   | "get_suggestions"
-  | "inbox_organized";
+  | "inbox_organized"
+  | "slack"
+  | "notion"
+  | "hubspot"
+  | "shopify"
+  | "make_trigger";
 
 export interface RoutingDecision {
   complexity: TaskComplexity;
@@ -158,6 +163,31 @@ function preDetectTools(message: string): { tools: AvailableTool[] } {
     tools.push("save_note");
   }
 
+  // Slack: enviar mensaje a canal
+  if (/\b(slack|canal|channel)\b/.test(lower) && /\b(env[íi]a|manda|publica|post|escribe|avisa|notifica)\b/.test(lower)) {
+    tools.push("slack");
+  }
+
+  // Notion: crear página, buscar, guardar
+  if (/\b(notion|wiki|documentar|p[áa]gina)\b/.test(lower) && /\b(crea|guarda|agrega|busca|documenta)\b/.test(lower)) {
+    tools.push("notion");
+  }
+
+  // HubSpot: CRM, contactos, deals
+  if (/\b(hubspot|contacto|deal|negocio|oportunidad|pipeline)\b/.test(lower) && /\b(crea|agrega|busca|sync|actualiza)\b/.test(lower)) {
+    tools.push("hubspot");
+  }
+
+  // Shopify: pedidos, productos, tienda
+  if (/\b(shopify|pedido|orden|producto|tienda|inventario)\b/.test(lower) && /\b(cu[áa]ntos|busca|muestra|estado|lista|últimos)\b/.test(lower)) {
+    tools.push("shopify");
+  }
+
+  // Make.com: automatización, escenario, trigger
+  if (/\b(make|zapier|n8n|automatiza|escenario|trigger|webhook)\b/.test(lower)) {
+    tools.push("make_trigger");
+  }
+
   return { tools };
 }
 
@@ -171,7 +201,7 @@ Complejidad:
 - complex: análisis estratégico, planificación multi-paso, comparar opciones con razonamiento profundo, decisiones de negocio
 
 Herramientas disponibles:
-none, gmail_read, gmail_send, send_email, calendar_read, calendar_write, github, desktop_screenshot, desktop_scrape, desktop_download, desktop_fill_form, web_search, rag_search, prospect_research, tasks_manage, schedule_followup, crm_lookup, action_control, save_note, get_suggestions, inbox_organized
+none, gmail_read, gmail_send, send_email, calendar_read, calendar_write, github, desktop_screenshot, desktop_scrape, desktop_download, desktop_fill_form, web_search, rag_search, prospect_research, tasks_manage, schedule_followup, crm_lookup, action_control, save_note, get_suggestions, inbox_organized, slack, notion, hubspot, shopify, make_trigger
 
 Usa send_email cuando el usuario quiere enviar un correo/email (detecta frases como "envíale a fulano@...", "mándale un correo a...", "escríbele a...@...", o cualquier variación natural que implique enviar un mensaje a una dirección de email).
 Usa calendar_write cuando el usuario quiere agendar, programar una reunión, cita, llamada o evento (frases como "agéndame con...", "programa una reunión", "ponme una cita el jueves").
@@ -210,7 +240,7 @@ async function classifyWithLlama(message: string, env: Env): Promise<{ complexit
       parsed.complexity === "complex" ? "complex" :
       parsed.complexity === "medium"  ? "medium"  : "simple";
 
-    const validTools = new Set<string>(["none","gmail_read","gmail_send","send_email","calendar_read","calendar_write","github","desktop_screenshot","desktop_scrape","desktop_download","desktop_fill_form","web_search","rag_search","prospect_research","tasks_manage","schedule_followup","crm_lookup","action_control","save_note"]);
+    const validTools = new Set<string>(["none","gmail_read","gmail_send","send_email","calendar_read","calendar_write","github","desktop_screenshot","desktop_scrape","desktop_download","desktop_fill_form","web_search","rag_search","prospect_research","tasks_manage","schedule_followup","crm_lookup","action_control","save_note","get_suggestions","inbox_organized","slack","notion","hubspot","shopify","make_trigger"]);
 
     const tools: AvailableTool[] = (parsed.tools ?? ["none"])
       .filter((t): t is AvailableTool => validTools.has(t));
