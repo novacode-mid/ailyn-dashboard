@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw Desktop</title>
+    <style>
+      body { margin: 0; background: #0f172a; overflow: hidden; }
+      /* Drag region for frameless window */
+      .titlebar-drag { -webkit-app-region: drag; }
+      .titlebar-drag button, .titlebar-drag a, .titlebar-drag input { -webkit-app-region: no-drag; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

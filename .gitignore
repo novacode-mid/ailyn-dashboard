@@ -68,3 +68,7 @@ supabase/.branches
 supabase/.temp
 desktop-agent/dist/
 desktop-agent/node_modules/
+desktop-app/dist/
+desktop-app/dist-electron/
+desktop-app/node_modules/
+desktop-app/release/
