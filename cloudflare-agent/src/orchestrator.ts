@@ -37,6 +37,8 @@ export interface OrchestratorInput {
   githubToken?: string | null;
   /** Si true, fuerza Llama (plan free) */
   forceFree?: boolean;
+  /** Integraciones activas de la empresa */
+  connectedProviders?: string[];
 }
 
 export interface EmailDraft {
@@ -248,6 +250,23 @@ Mantén el idioma consistente durante toda la conversación a menos que el usuar
 Empresa: ${input.companyName}${input.industry ? ` · Industria: ${input.industry}` : ""}
 Fecha y hora: ${now}
 Canal: ${input.channel}
+${(() => {
+  const cp = input.connectedProviders ?? [];
+  if (cp.length === 0) return "\n## Integraciones\nEsta empresa NO tiene integraciones conectadas. Si el usuario pregunta, dile que puede conectar Slack, Notion, HubSpot, Shopify o Make.com desde Configuración en el dashboard.";
+  const descriptions: Record<string, string> = {
+    make: "Make.com — registrar datos, automatizar tareas, disparar escenarios",
+    slack: "Slack — enviar mensajes a canales",
+    notion: "Notion — crear páginas y buscar contenido",
+    hubspot: "HubSpot — crear/buscar contactos y deals",
+    shopify: "Shopify — consultar pedidos y productos",
+    google: "Google — Gmail y Calendar",
+    github: "GitHub — repositorios y código",
+  };
+  const connected = cp.map(p => `- ✅ ${descriptions[p] ?? p}`).join("\n");
+  const allProviders = ["slack", "notion", "hubspot", "shopify", "make"];
+  const notConnected = allProviders.filter(p => !cp.includes(p)).map(p => `- ❌ ${descriptions[p] ?? p} (no conectada)`).join("\n");
+  return `\n## Integraciones de esta empresa\nConectadas:\n${connected}\n${notConnected ? `\nNo conectadas:\n${notConnected}` : ""}\nSi el usuario pregunta qué integraciones tiene, responde SOLO las conectadas (✅). Las no conectadas, menciónalas como disponibles para conectar en Configuración.\nUSA las integraciones conectadas activamente cuando el contexto lo amerite.`;
+})()}
 
 ## Reglas de autonomía
 - Para ENVIAR emails: siempre redacta el draft con el marcador. El sistema mostrará botones de aprobación al usuario.
@@ -407,19 +426,22 @@ export async function loadHistory(
 }
 
 /** Carga tokens de integraciones de la empresa */
-export async function loadIntegrations(env: Env, companyId: number): Promise<{ googleToken: string | null; githubToken: string | null }> {
-  const google = await env.DB.prepare(
-    `SELECT access_token FROM integrations WHERE company_id = ? AND provider = 'google' AND is_active = 1`
-  ).bind(companyId).first<{ access_token: string }>();
+export async function loadIntegrations(env: Env, companyId: number): Promise<{ googleToken: string | null; githubToken: string | null; connectedProviders: string[] }> {
+  const rows = await env.DB.prepare(
+    `SELECT provider, access_token FROM integrations WHERE company_id = ? AND is_active = 1`
+  ).bind(companyId).all<{ provider: string; access_token: string }>();
 
-  const github = await env.DB.prepare(
-    `SELECT access_token FROM integrations WHERE company_id = ? AND provider = 'github' AND is_active = 1`
-  ).bind(companyId).first<{ access_token: string }>();
+  let googleToken: string | null = null;
+  let githubToken: string | null = null;
+  const connectedProviders: string[] = [];
 
-  return {
-    googleToken: google?.access_token ?? null,
-    githubToken: github?.access_token ?? null,
-  };
+  for (const r of rows.results ?? []) {
+    connectedProviders.push(r.provider);
+    if (r.provider === "google") googleToken = r.access_token;
+    if (r.provider === "github") githubToken = r.access_token;
+  }
+
+  return { googleToken, githubToken, connectedProviders };
 }
 
 // ── Función principal ──────────────────────────────────────────────────────
@@ -437,7 +459,7 @@ export async function orchestrate(
   const forceFree = planProvider === "cloudflare" || (input.forceFree ?? false);
 
   // 2. Router: clasificar + seleccionar modelo (con historial para detectar follow-ups)
-  const { routing, cleanMessage } = await route(input.message, env, forceFree, input.history ?? []);
+  const { routing, cleanMessage } = await route(input.message, env, forceFree, input.history ?? [], input.connectedProviders ?? []);
 
   // 2.5 Response Cache: para mensajes simples sin herramientas, buscar en KV
   const isSimpleNoTools = routing.complexity === "simple" && routing.tools_needed[0] === "none";

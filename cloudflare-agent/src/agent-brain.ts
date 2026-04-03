@@ -89,6 +89,10 @@ export async function processMessage(
   const isKnowledgeQuery = /\b(notas?|apuntes?|knowledge|obsidian|guard[ée]|qu[ée] tengo|qu[ée] sab|busca|encuentra|informaci[óo]n sobre|cu[ée]ntame|hist[óo]rial|resum)\b/i.test(lower);
   if (isKnowledgeQuery) return { type: "text_response" };
 
+  // Integraciones (Make, Slack, Notion, HubSpot, Shopify) → orchestrator
+  const isIntegrationIntent = /\b(make|zapier|n8n|automatiza|escenario|trigger|webhook|registra|anota|guarda.*dato|log[gu]ea|slack|notion|hubspot|shopify|pedido|contacto|deal|canal)\b/i.test(lower);
+  if (isIntegrationIntent) return { type: "text_response" };
+
   try {
     const result = await runLLM(
       env,

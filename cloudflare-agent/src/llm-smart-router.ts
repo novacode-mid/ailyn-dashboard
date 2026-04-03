@@ -83,7 +83,7 @@ export function detectForcedModel(message: string): ForcedModel | null {
 
 // ── Pre-detección por keywords (antes del LLM, más confiable) ─────────────
 
-function preDetectTools(message: string): { tools: AvailableTool[] } {
+function preDetectTools(message: string, connectedProviders: string[] = []): { tools: AvailableTool[] } {
   const lower = message.toLowerCase();
   const tools: AvailableTool[] = [];
 
@@ -163,29 +163,37 @@ function preDetectTools(message: string): { tools: AvailableTool[] } {
     tools.push("save_note");
   }
 
-  // Slack: enviar mensaje a canal
-  if (/\b(slack|canal|channel)\b/.test(lower) && /\b(env[íi]a|manda|publica|post|escribe|avisa|notifica)\b/.test(lower)) {
-    tools.push("slack");
+  // ── Integraciones: solo detectar si la empresa las tiene conectadas ──
+  const connected = new Set(connectedProviders);
+
+  if (connected.has("slack")) {
+    if (/\b(slack|canal|channel)\b/.test(lower) && /\b(env[íi]a|manda|publica|post|escribe|avisa|notifica)\b/.test(lower)) {
+      tools.push("slack");
+    }
   }
 
-  // Notion: crear página, buscar, guardar
-  if (/\b(notion|wiki|documentar|p[áa]gina)\b/.test(lower) && /\b(crea|guarda|agrega|busca|documenta)\b/.test(lower)) {
-    tools.push("notion");
+  if (connected.has("notion")) {
+    if (/\b(notion|wiki|documentar|p[áa]gina)\b/.test(lower) && /\b(crea|guarda|agrega|busca|documenta)\b/.test(lower)) {
+      tools.push("notion");
+    }
   }
 
-  // HubSpot: CRM, contactos, deals
-  if (/\b(hubspot|contacto|deal|negocio|oportunidad|pipeline)\b/.test(lower) && /\b(crea|agrega|busca|sync|actualiza)\b/.test(lower)) {
-    tools.push("hubspot");
+  if (connected.has("hubspot")) {
+    if (/\b(hubspot|contacto|deal|negocio|oportunidad|pipeline)\b/.test(lower) && /\b(crea|agrega|busca|sync|actualiza)\b/.test(lower)) {
+      tools.push("hubspot");
+    }
   }
 
-  // Shopify: pedidos, productos, tienda
-  if (/\b(shopify|pedido|orden|producto|tienda|inventario)\b/.test(lower) && /\b(cu[áa]ntos|busca|muestra|estado|lista|últimos)\b/.test(lower)) {
-    tools.push("shopify");
+  if (connected.has("shopify")) {
+    if (/\b(shopify|pedido|orden|producto|tienda|inventario)\b/.test(lower) && /\b(cu[áa]ntos|busca|muestra|estado|lista|últimos)\b/.test(lower)) {
+      tools.push("shopify");
+    }
   }
 
-  // Make.com: automatización, escenario, trigger
-  if (/\b(make|zapier|n8n|automatiza|escenario|trigger|webhook)\b/.test(lower)) {
-    tools.push("make_trigger");
+  if (connected.has("make")) {
+    if (/\b(make|zapier|n8n|automatiza|escenario|trigger|webhook|registra|anota|guarda.*dato|log[gu]ea)\b/.test(lower)) {
+      tools.push("make_trigger");
+    }
   }
 
   return { tools };
@@ -193,7 +201,7 @@ function preDetectTools(message: string): { tools: AvailableTool[] } {
 
 // ── Clasificación con Llama ────────────────────────────────────────────────
 
-const CLASSIFICATION_PROMPT = `Clasifica el siguiente mensaje del usuario. Responde SOLO con JSON válido, sin markdown.
+const CLASSIFICATION_PROMPT_BASE = `Clasifica el siguiente mensaje del usuario. Responde SOLO con JSON válido, sin markdown.
 
 Complejidad:
 - simple: saludos, preguntas directas, listas rápidas, formatear texto, datos ya disponibles
@@ -201,7 +209,7 @@ Complejidad:
 - complex: análisis estratégico, planificación multi-paso, comparar opciones con razonamiento profundo, decisiones de negocio
 
 Herramientas disponibles:
-none, gmail_read, gmail_send, send_email, calendar_read, calendar_write, github, desktop_screenshot, desktop_scrape, desktop_download, desktop_fill_form, web_search, rag_search, prospect_research, tasks_manage, schedule_followup, crm_lookup, action_control, save_note, get_suggestions, inbox_organized, slack, notion, hubspot, shopify, make_trigger
+TOOLS_LIST
 
 Usa send_email cuando el usuario quiere enviar un correo/email (detecta frases como "envíale a fulano@...", "mándale un correo a...", "escríbele a...@...", o cualquier variación natural que implique enviar un mensaje a una dirección de email).
 Usa calendar_write cuando el usuario quiere agendar, programar una reunión, cita, llamada o evento (frases como "agéndame con...", "programa una reunión", "ponme una cita el jueves").
@@ -209,15 +217,44 @@ Usa schedule_followup cuando el usuario quiere programar un seguimiento futuro (
 Usa crm_lookup cuando el usuario pregunta por el historial o estado de un contacto específico (frases como "qué pasó con Pedro?", "historial de SmartPasses", "cuéntame sobre el lead de Juan").
 Usa action_control cuando el usuario quiere detener, cancelar o parar una acción, follow-up, cadena de emails o reunión (frases como "cancela el follow-up de Pedro", "detén el seguimiento", "para la cadena de emails").
 Usa save_note cuando el usuario envía un URL de video o contenido web y quiere guardarlo, resumirlo o tomarlo como nota.
+INTEGRATION_HINTS
 
 Mensaje: "USER_MESSAGE"
 
 JSON (solo esto, sin nada más):
 {"complexity":"simple|medium|complex","tools":["tool1"]}`;
 
-async function classifyWithLlama(message: string, env: Env): Promise<{ complexity: TaskComplexity; tools: AvailableTool[] }> {
+const BASE_TOOLS = "none, gmail_read, gmail_send, send_email, calendar_read, calendar_write, github, desktop_screenshot, desktop_scrape, desktop_download, desktop_fill_form, web_search, rag_search, prospect_research, tasks_manage, schedule_followup, crm_lookup, action_control, save_note, get_suggestions, inbox_organized";
+
+const INTEGRATION_TOOL_MAP: Record<string, { tool: string; hint: string }> = {
+  slack: { tool: "slack", hint: "Usa slack cuando el usuario quiere enviar un mensaje a un canal de Slack." },
+  notion: { tool: "notion", hint: "Usa notion cuando el usuario quiere crear una página o buscar en Notion." },
+  hubspot: { tool: "hubspot", hint: "Usa hubspot cuando el usuario quiere crear/buscar contactos o deals en el CRM." },
+  shopify: { tool: "shopify", hint: "Usa shopify cuando el usuario pregunta por pedidos o productos de su tienda." },
+  make: { tool: "make_trigger", hint: "Usa make_trigger cuando el usuario quiere registrar datos, automatizar algo, o disparar un escenario." },
+};
+
+function buildClassificationPrompt(connectedProviders: string[]): string {
+  const integrationTools = connectedProviders
+    .filter(p => INTEGRATION_TOOL_MAP[p])
+    .map(p => INTEGRATION_TOOL_MAP[p].tool);
+  const toolsList = integrationTools.length > 0
+    ? `${BASE_TOOLS}, ${integrationTools.join(", ")}`
+    : BASE_TOOLS;
+
+  const hints = connectedProviders
+    .filter(p => INTEGRATION_TOOL_MAP[p])
+    .map(p => INTEGRATION_TOOL_MAP[p].hint)
+    .join("\n");
+
+  return CLASSIFICATION_PROMPT_BASE
+    .replace("TOOLS_LIST", toolsList)
+    .replace("INTEGRATION_HINTS", hints ? `\n${hints}` : "");
+}
+
+async function classifyWithLlama(message: string, env: Env, connectedProviders: string[] = []): Promise<{ complexity: TaskComplexity; tools: AvailableTool[] }> {
   const safeMessage = JSON.stringify(message.slice(0, 500)).slice(1, -1); // JSON-escape, remove outer quotes
-  const prompt = CLASSIFICATION_PROMPT.replace("USER_MESSAGE", safeMessage);
+  const prompt = buildClassificationPrompt(connectedProviders).replace("USER_MESSAGE", safeMessage);
 
   try {
     const result = await env.AI.run(
@@ -240,7 +277,9 @@ async function classifyWithLlama(message: string, env: Env): Promise<{ complexit
       parsed.complexity === "complex" ? "complex" :
       parsed.complexity === "medium"  ? "medium"  : "simple";
 
-    const validTools = new Set<string>(["none","gmail_read","gmail_send","send_email","calendar_read","calendar_write","github","desktop_screenshot","desktop_scrape","desktop_download","desktop_fill_form","web_search","rag_search","prospect_research","tasks_manage","schedule_followup","crm_lookup","action_control","save_note","get_suggestions","inbox_organized","slack","notion","hubspot","shopify","make_trigger"]);
+    const baseValid = ["none","gmail_read","gmail_send","send_email","calendar_read","calendar_write","github","desktop_screenshot","desktop_scrape","desktop_download","desktop_fill_form","web_search","rag_search","prospect_research","tasks_manage","schedule_followup","crm_lookup","action_control","save_note","get_suggestions","inbox_organized"];
+    const integrationValid = connectedProviders.filter(p => INTEGRATION_TOOL_MAP[p]).map(p => INTEGRATION_TOOL_MAP[p].tool);
+    const validTools = new Set<string>([...baseValid, ...integrationValid]);
 
     const tools: AvailableTool[] = (parsed.tools ?? ["none"])
       .filter((t): t is AvailableTool => validTools.has(t));
@@ -300,7 +339,9 @@ export async function route(
   /** Si el plan de la empresa es 'free', downgrade a simple/cloudflare siempre */
   forceFree = false,
   /** Historial reciente para detectar contexto conversacional */
-  history: { role: string; content: string }[] = []
+  history: { role: string; content: string }[] = [],
+  /** Integraciones activas de la empresa */
+  connectedProviders: string[] = []
 ): Promise<{ routing: RoutingDecision; cleanMessage: string }> {
 
   // Detectar si estamos en medio de una acción (email, calendario, etc.)
@@ -308,7 +349,7 @@ export async function route(
 
   // Free tier: siempre Llama, pero SÍ detectar herramientas por keywords (gratis, no usa LLM)
   if (forceFree) {
-    const preDetected = preDetectTools(rawMessage);
+    const preDetected = preDetectTools(rawMessage, connectedProviders);
     const tools: AvailableTool[] = preDetected.tools.length > 0 ? preDetected.tools : ["none"];
     const complexity: TaskComplexity = (preDetected.tools.length > 0 || convContext.hasPendingAction) ? "medium" : "simple";
     const m = MODEL_MAP.simple; // Siempre Llama para free tier
@@ -345,7 +386,7 @@ export async function route(
   }
 
   // Pre-detección por keywords antes del LLM (más confiable para acciones explícitas)
-  const preDetected = preDetectTools(rawMessage);
+  const preDetected = preDetectTools(rawMessage, connectedProviders);
 
   // Optimization: skip Llama for short simple messages
   // BUT: longer messages without detected tools might have complex intent → elevate to medium
@@ -388,7 +429,7 @@ export async function route(
 
   if (!highConfidence) {
     // Only call Llama if pre-detection didn't find anything
-    const classified = await classifyWithLlama(rawMessage, env);
+    const classified = await classifyWithLlama(rawMessage, env, connectedProviders);
     llamaComplexity = classified.complexity;
     llamaTools = classified.tools;
   }

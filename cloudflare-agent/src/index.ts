@@ -612,6 +612,7 @@ async function handlePublicChat(env: Env, request: Request, slug: string): Promi
     history,
     googleToken,
     githubToken: integrations.githubToken,
+    connectedProviders: integrations.connectedProviders,
   }, env);
 
   const reply = result.text || "Lo siento, no pude procesar tu mensaje. Por favor intenta de nuevo.";
@@ -3010,6 +3011,7 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
       history,
       googleToken,
       githubToken: integrations.githubToken,
+      connectedProviders: integrations.connectedProviders,
     }, env);
 
     // Trigger webhooks

@@ -512,6 +512,7 @@ export async function handleTelegramWebhookMulti(
       history,
       googleToken,
       githubToken: integrations.githubToken,
+      connectedProviders: integrations.connectedProviders,
     }, env);
 
     const reply = result.text || "Lo siento, no pude procesar tu mensaje.";
