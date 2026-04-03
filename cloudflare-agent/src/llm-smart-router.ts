@@ -1,0 +1,380 @@
+// ── Smart LLM Router ──────────────────────────────────────────────────────
+// Usa Llama (gratis) para clasificar la intención y selecciona el mejor modelo.
+
+import type { Env } from "./types";
+
+export type TaskComplexity = "simple" | "medium" | "complex";
+
+export type AvailableTool =
+  | "none"
+  | "gmail_read"
+  | "gmail_send"
+  | "send_email"
+  | "calendar_read"
+  | "calendar_write"
+  | "github"
+  | "desktop_screenshot"
+  | "desktop_scrape"
+  | "desktop_download"
+  | "desktop_fill_form"
+  | "web_search"
+  | "rag_search"
+  | "prospect_research"
+  | "tasks_manage"
+  | "schedule_followup"
+  | "crm_lookup"
+  | "action_control"
+  | "save_note";
+
+export interface RoutingDecision {
+  complexity: TaskComplexity;
+  model: string;
+  provider: "cloudflare" | "anthropic" | "openai";
+  tools_needed: AvailableTool[];
+  estimated_cost: number;
+  forced?: boolean; // true si el usuario forzó con !opus / !sonnet / !llama / !gpt
+}
+
+// ── Modelos por complejidad ────────────────────────────────────────────────
+
+const MODEL_MAP: Record<TaskComplexity, { model: string; provider: "cloudflare" | "anthropic" | "openai"; cost: number }> = {
+  simple:  { model: "@cf/meta/llama-3.3-70b-instruct-fp8-fast", provider: "cloudflare", cost: 0 },
+  medium:  { model: "claude-sonnet-4-20250514",                  provider: "anthropic",   cost: 0.02 },
+  complex: { model: "claude-opus-4-20250514",                    provider: "anthropic",   cost: 0.10 },
+};
+
+// OpenAI alternatives (used with !gpt prefix or as fallback)
+const OPENAI_MAP: Record<TaskComplexity, { model: string; cost: number }> = {
+  simple:  { model: "gpt-4o-mini",  cost: 0.005 },
+  medium:  { model: "gpt-4o",       cost: 0.03 },
+  complex: { model: "gpt-4o",       cost: 0.03 },
+};
+
+// ── Forzar modelo con prefijos ─────────────────────────────────────────────
+
+interface ForcedModel {
+  complexity: TaskComplexity;
+  message: string; // mensaje limpio sin el prefijo
+}
+
+export function detectForcedModel(message: string): ForcedModel | null {
+  const lower = message.trimStart();
+  if (lower.startsWith("!opus ") || lower.startsWith("!opus\n")) {
+    return { complexity: "complex", message: message.replace(/^!opus\s*/i, "").trim() };
+  }
+  if (lower.startsWith("!sonnet ") || lower.startsWith("!sonnet\n")) {
+    return { complexity: "medium", message: message.replace(/^!sonnet\s*/i, "").trim() };
+  }
+  if (lower.startsWith("!gpt ") || lower.startsWith("!gpt\n")) {
+    return { complexity: "medium", message: message.replace(/^!gpt\s*/i, "").trim() };
+  }
+  if (lower.startsWith("!llama ") || lower.startsWith("!llama\n")) {
+    return { complexity: "simple", message: message.replace(/^!llama\s*/i, "").trim() };
+  }
+  return null;
+}
+
+// ── Pre-detección por keywords (antes del LLM, más confiable) ─────────────
+
+function preDetectTools(message: string): { tools: AvailableTool[] } {
+  const lower = message.toLowerCase();
+  const tools: AvailableTool[] = [];
+
+  // Email: dirección @ + verbo de envío (no requiere la palabra "email" explícita)
+  const hasEmailAddress = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/.test(message);
+  const hasSendVerb = /\b(env[íi]a|manda|send|escribe|redacta|mandar|enviar|escribir|escribile|escribele|env[íi]ale|m[áa]ndale|contacta|cont[áa]ctale)\b/i.test(lower);
+  const hasEmailWord = /\b(email|correo|mail|e-mail)\b/.test(lower);
+
+  // Detectar si quiere enviar email: (dirección + verbo) O (dirección + palabra "email/correo")
+  if (hasEmailAddress && (hasSendVerb || hasEmailWord)) tools.push("send_email");
+
+  // Notes/Knowledge search: buscar en notas guardadas
+  if (/\b(notas?|apuntes?|guard[ée]|knowledge|obsidian)\b/.test(lower)
+    && /\b(tengo|sobre|busca|encuentra|qu[ée]|cu[áa]les|relacionad)\b/.test(lower)) {
+    tools.push("rag_search");
+  }
+
+  // Calendar: agendar, reunión, cita → también leer calendario para detectar conflictos
+  if (/\b(ag[ée]nda|agenda|reuni[óo]n|cita|meeting|agendar|programa|calend|junta|llamada con|videollamada)\b/.test(lower)
+    && /\b(con|para|el|la|ma[ñn]ana|lunes|martes|mi[ée]rcoles|jueves|viernes|s[áa]bado|domingo|hoy|a las|pm|am)\b/.test(lower)) {
+    tools.push("calendar_read");  // primero leer para detectar conflictos
+    tools.push("calendar_write");
+  }
+
+  // Follow-up: seguimiento, recordatorio de envío
+  const hasFollowupIntent = /\b(seguimiento|follow.?up|si no responde|recordar.?le|recontactar|volver a escribir)\b/.test(lower)
+    || /\b(dale?|darle|hazle|hacer)\b.*\b(seguimiento)\b/.test(lower);
+  const hasTimeRef = /\b(d[íi]as?|horas?|semanas?|ma[ñn]ana|hoy|lunes|martes|mi[ée]rcoles|jueves|viernes|s[áa]bado|domingo|pr[óo]xim|despu[ée]s)\b/.test(lower);
+  if (hasFollowupIntent && (hasTimeRef || hasEmailAddress)) {
+    tools.push("schedule_followup");
+  }
+
+  // CRM: preguntar por un contacto/lead específico
+  if (/\b(qu[ée] pas[óo]|historial|estado|info|informaci[óo]n|cu[ée]ntame|d[ií]me)\b/.test(lower)
+    && /\b(de|con|sobre)\b/.test(lower)
+    && /[A-Z][a-z]/.test(message)) { // tiene un nombre propio (mayúscula seguida de minúscula)
+    tools.push("crm_lookup");
+  }
+
+  // Email summary / read inbox: cualquier pregunta sobre emails recibidos
+  const wantsReadEmail = /\b(emails?|correos?|inbox|bandeja|gmail)\b/.test(lower)
+    && /\b(important|resumen|resume|resum[ií]|tengo|lleg[óo]|nuevos?|pendientes?|sin leer|recib[ií]|hay|lee|leer|muestra|ver|revisa)\b/.test(lower);
+  // También detectar preguntas directas tipo "qué emails tengo?" o "revisa mi correo"
+  const wantsReadEmail2 = /\b(qu[ée]|cu[áa]les|rev[ií]sa|lee|muestra|dame)\b/.test(lower)
+    && /\b(emails?|correos?|inbox|bandeja|gmail)\b/.test(lower);
+  if (wantsReadEmail || wantsReadEmail2) {
+    tools.push("gmail_read");
+  }
+
+  // Web search: buscar en internet
+  if (/\b(busca|buscar|investiga|googlea|search|encuentra en internet|busca en la web)\b/.test(lower)) {
+    tools.push("web_search");
+  }
+
+  // Stop/cancel actions
+  if (/\b(det[ée]n|detener|cancela|cancelar|para|parar|stop)\b/.test(lower)
+    && /\b(follow.?up|seguimiento|cadena|email|reuni[óo]n|acci[óo]n)\b/.test(lower)) {
+    tools.push("action_control");
+  }
+
+  // Video/content URL → save as note
+  const hasUrl = /https?:\/\/[^\s]+/.test(message);
+  const isVideoUrl = /\b(facebook\.com|fb\.watch|instagram\.com|tiktok\.com|youtube\.com|youtu\.be|reel|shorts|watch)\b/i.test(lower);
+  const wantsSave = /\b(gu[áa]rda|guarda|nota|apunta|resume|resum[ií]|save|anota|obsidian)\b/i.test(lower);
+  // If it's just a video URL with no other context, assume they want to save it
+  if (hasUrl && (isVideoUrl || wantsSave)) {
+    tools.push("save_note");
+  }
+
+  return { tools };
+}
+
+// ── Clasificación con Llama ────────────────────────────────────────────────
+
+const CLASSIFICATION_PROMPT = `Clasifica el siguiente mensaje del usuario. Responde SOLO con JSON válido, sin markdown.
+
+Complejidad:
+- simple: saludos, preguntas directas, listas rápidas, formatear texto, datos ya disponibles
+- medium: redactar emails, resumir, investigar un tema, responder con contexto, generar briefs
+- complex: análisis estratégico, planificación multi-paso, comparar opciones con razonamiento profundo, decisiones de negocio
+
+Herramientas disponibles:
+none, gmail_read, gmail_send, send_email, calendar_read, calendar_write, github, desktop_screenshot, desktop_scrape, desktop_download, desktop_fill_form, web_search, rag_search, prospect_research, tasks_manage, schedule_followup, crm_lookup, action_control, save_note
+
+Usa send_email cuando el usuario quiere enviar un correo/email (detecta frases como "envíale a fulano@...", "mándale un correo a...", "escríbele a...@...", o cualquier variación natural que implique enviar un mensaje a una dirección de email).
+Usa calendar_write cuando el usuario quiere agendar, programar una reunión, cita, llamada o evento (frases como "agéndame con...", "programa una reunión", "ponme una cita el jueves").
+Usa schedule_followup cuando el usuario quiere programar un seguimiento futuro (frases como "si no responde en 3 días", "dale seguimiento en una semana", "recuérdame escribirle mañana").
+Usa crm_lookup cuando el usuario pregunta por el historial o estado de un contacto específico (frases como "qué pasó con Pedro?", "historial de SmartPasses", "cuéntame sobre el lead de Juan").
+Usa action_control cuando el usuario quiere detener, cancelar o parar una acción, follow-up, cadena de emails o reunión (frases como "cancela el follow-up de Pedro", "detén el seguimiento", "para la cadena de emails").
+Usa save_note cuando el usuario envía un URL de video o contenido web y quiere guardarlo, resumirlo o tomarlo como nota.
+
+Mensaje: "USER_MESSAGE"
+
+JSON (solo esto, sin nada más):
+{"complexity":"simple|medium|complex","tools":["tool1"]}`;
+
+async function classifyWithLlama(message: string, env: Env): Promise<{ complexity: TaskComplexity; tools: AvailableTool[] }> {
+  const safeMessage = JSON.stringify(message.slice(0, 500)).slice(1, -1); // JSON-escape, remove outer quotes
+  const prompt = CLASSIFICATION_PROMPT.replace("USER_MESSAGE", safeMessage);
+
+  try {
+    const result = await env.AI.run(
+      "@cf/meta/llama-3.2-3b-instruct" as Parameters<typeof env.AI.run>[0],
+      {
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 128,
+      }
+    ) as { response?: unknown };
+
+    const raw = typeof result.response === "string" ? result.response : JSON.stringify(result.response ?? "");
+
+    // Extraer JSON del output (puede venir con texto extra)
+    const jsonMatch = raw.match(/\{[^{}]+\}/);
+    if (!jsonMatch) throw new Error("No JSON found");
+
+    const parsed = JSON.parse(jsonMatch[0]) as { complexity?: string; tools?: string[] };
+
+    const complexity: TaskComplexity =
+      parsed.complexity === "complex" ? "complex" :
+      parsed.complexity === "medium"  ? "medium"  : "simple";
+
+    const validTools = new Set<string>(["none","gmail_read","gmail_send","send_email","calendar_read","calendar_write","github","desktop_screenshot","desktop_scrape","desktop_download","desktop_fill_form","web_search","rag_search","prospect_research","tasks_manage","schedule_followup","crm_lookup","action_control","save_note"]);
+
+    const tools: AvailableTool[] = (parsed.tools ?? ["none"])
+      .filter((t): t is AvailableTool => validTools.has(t));
+
+    return { complexity, tools: tools.length ? tools : ["none"] };
+  } catch {
+    // Default seguro: medium sin herramientas
+    return { complexity: "medium", tools: ["none"] };
+  }
+}
+
+// ── Detección de contexto conversacional ──────────────────────────────────
+// Si el historial reciente tiene marcadores de acción o flujos en curso,
+// el mensaje actual es un follow-up y necesita modelo inteligente.
+
+interface ConversationContext {
+  hasPendingAction: boolean;
+  actionType: "email" | "calendar" | null;
+}
+
+function detectConversationContext(history: { role: string; content: string }[]): ConversationContext {
+  // Revisar los últimos 4 mensajes del asistente
+  const recentAssistant = history
+    .filter(m => m.role === "assistant")
+    .slice(-4);
+
+  for (const msg of recentAssistant.reverse()) {
+    const c = msg.content;
+    // Flujo de email en curso
+    if (/EMAIL_LISTO|email listo para enviar|quieres cambiar|redact/i.test(c)
+      || /asunto:|subject:|correo a |email a /i.test(c)) {
+      return { hasPendingAction: true, actionType: "email" };
+    }
+    // Flujo de calendario en curso
+    if (/EVENTO_LISTO|evento listo para agendar|conflicto|cambiar.*(hora|horario)|agendar.*de todas formas/i.test(c)
+      || /reunión con|llamada con|cita con|te sugiero las/i.test(c)) {
+      return { hasPendingAction: true, actionType: "calendar" };
+    }
+  }
+
+  return { hasPendingAction: false, actionType: null };
+}
+
+// ── Función principal ──────────────────────────────────────────────────────
+
+/**
+ * Determina qué modelo y herramientas usar para el mensaje.
+ * Si el mensaje empieza con !opus/!sonnet/!llama, fuerza ese modelo.
+ * Si no, usa Llama 3B para clasificar (~0.1s, gratis).
+ *
+ * @param history — historial reciente para detectar follow-ups de acciones
+ * @returns { routing, cleanMessage } — cleanMessage sin el prefijo !modelo
+ */
+export async function route(
+  rawMessage: string,
+  env: Env,
+  /** Si el plan de la empresa es 'free', downgrade a simple/cloudflare siempre */
+  forceFree = false,
+  /** Historial reciente para detectar contexto conversacional */
+  history: { role: string; content: string }[] = []
+): Promise<{ routing: RoutingDecision; cleanMessage: string }> {
+
+  // Detectar si estamos en medio de una acción (email, calendario, etc.)
+  const convContext = detectConversationContext(history);
+
+  // Free tier: siempre Llama, pero SÍ detectar herramientas por keywords (gratis, no usa LLM)
+  if (forceFree) {
+    const preDetected = preDetectTools(rawMessage);
+    const tools: AvailableTool[] = preDetected.tools.length > 0 ? preDetected.tools : ["none"];
+    const complexity: TaskComplexity = (preDetected.tools.length > 0 || convContext.hasPendingAction) ? "medium" : "simple";
+    const m = MODEL_MAP.simple; // Siempre Llama para free tier
+    return {
+      routing: {
+        complexity,
+        model: m.model,
+        provider: "cloudflare" as const,
+        tools_needed: tools,
+        estimated_cost: 0,
+      },
+      cleanMessage: rawMessage,
+    };
+  }
+
+  // Forzar modelo con prefijo
+  const forced = detectForcedModel(rawMessage);
+  if (forced) {
+    // !gpt → OpenAI provider
+    const isGpt = rawMessage.trimStart().toLowerCase().startsWith("!gpt");
+    const m = isGpt ? OPENAI_MAP[forced.complexity] : MODEL_MAP[forced.complexity];
+    const provider = isGpt ? "openai" as const : MODEL_MAP[forced.complexity].provider;
+    return {
+      routing: {
+        complexity: forced.complexity,
+        model: m.model,
+        provider,
+        tools_needed: ["none"], // cuando se fuerza modelo, el usuario controla
+        estimated_cost: m.cost,
+        forced: true,
+      },
+      cleanMessage: forced.message,
+    };
+  }
+
+  // Pre-detección por keywords antes del LLM (más confiable para acciones explícitas)
+  const preDetected = preDetectTools(rawMessage);
+
+  // Optimization: skip Llama if pre-detection is confident enough
+  // Short messages without tools are always "simple", messages with tools are "medium"
+  const shortSimple = rawMessage.length < 30 && preDetected.tools.length === 0 && !convContext.hasPendingAction;
+  if (shortSimple) {
+    const m = MODEL_MAP.simple;
+    return {
+      routing: {
+        complexity: "simple" as TaskComplexity,
+        model: m.model,
+        provider: m.provider,
+        tools_needed: ["none"] as AvailableTool[],
+        estimated_cost: m.cost,
+      },
+      cleanMessage: rawMessage,
+    };
+  }
+
+  // If pre-detection found tools with high confidence (email+verb, calendar+time), skip classification
+  const highConfidence = preDetected.tools.length > 0;
+  let llamaComplexity: TaskComplexity = "medium";
+  let llamaTools: AvailableTool[] = [];
+
+  if (!highConfidence) {
+    // Only call Llama if pre-detection didn't find anything
+    const classified = await classifyWithLlama(rawMessage, env);
+    llamaComplexity = classified.complexity;
+    llamaTools = classified.tools;
+  }
+
+  // Fusionar tools detectadas por keywords con las del clasificador
+  let mergedTools = [...new Set([...preDetected.tools, ...llamaTools].filter(t => t !== "none"))];
+
+  // Resolver conflictos: schedule_followup y send_email no van juntos
+  // (follow-up ES un email diferido, no hay que enviar ahora)
+  if (mergedTools.includes("schedule_followup")) {
+    mergedTools = mergedTools.filter(t => t !== "send_email" && t !== "gmail_send");
+  }
+
+  const tools: AvailableTool[] = mergedTools.length > 0 ? mergedTools : ["none"];
+
+  // Elevar complejidad a "medium" si:
+  // - Se pre-detectó una herramienta de acción, O
+  // - Hay una acción pendiente en la conversación (follow-up como "sí", "a las 4", "cámbialo")
+  const needsElevation = preDetected.tools.length > 0 || convContext.hasPendingAction;
+  const rawComplexity = highConfidence ? "medium" : llamaComplexity;
+  const complexity: TaskComplexity =
+    needsElevation && rawComplexity === "simple" ? "medium" : rawComplexity;
+
+  const m = MODEL_MAP[complexity];
+
+  return {
+    routing: {
+      complexity,
+      model: m.model,
+      provider: m.provider,
+      tools_needed: tools,
+      estimated_cost: m.cost,
+    },
+    cleanMessage: rawMessage,
+  };
+}
+
+// ── Indicador de modelo para Telegram ─────────────────────────────────────
+
+export function modelIndicator(routing: RoutingDecision, durationMs: number): string {
+  const sec = (durationMs / 1000).toFixed(1);
+  if (routing.provider === "openai") return `\n\n💚 gpt · ${sec}s`;
+  switch (routing.complexity) {
+    case "simple":  return `\n\n⚡ llama · ${sec}s`;
+    case "medium":  return `\n\n🧠 sonnet · ${sec}s`;
+    case "complex": return `\n\n🔮 opus · ${sec}s`;
+  }
+}

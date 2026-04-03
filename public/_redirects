@@ -1,1 +1,15 @@
-/wallet-chat/* /wallet-chat/ 200
+# SPA fallback for all dashboard routes
+/dashboard/* /dashboard/index.html 200
+/leads/* /leads/index.html 200
+/billing/* /billing/index.html 200
+/knowledge/* /knowledge/index.html 200
+/settings/* /settings/index.html 200
+/automations/* /automations/index.html 200
+/wallet/* /wallet/index.html 200
+/wallet-chat/* /wallet-chat/index.html 200
+/chat/* /chat/index.html 200
+/login/* /login/index.html 200
+/signup/* /signup/index.html 200
+/register/* /register/index.html 200
+/setup/* /setup/index.html 200
+/admin/* /admin/index.html 200

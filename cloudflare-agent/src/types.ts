@@ -26,6 +26,15 @@ export interface Env {
   OPENAI_API_KEY?: string;
   // Secret opcional para envío de emails (Fase 18)
   RESEND_API_KEY?: string;
+  // Google OAuth (para Gmail + Calendar)
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
+  // GitHub (opcional — PAT por tenant en KV o global)
+  GITHUB_TOKEN?: string;
+  // Polar webhook (pagos / suscripciones)
+  POLAR_WEBHOOK_SECRET?: string;
+  // WhatsApp Cloud API (optional)
+  WHATSAPP_APP_SECRET?: string;
 }
 
 // ── KV: historial de conversación ─────────────────────────────────────────
@@ -78,11 +87,20 @@ export interface TelegramCallbackQuery {
   data?: string;
 }
 
+export interface TelegramVoice {
+  file_id: string;
+  file_unique_id: string;
+  duration: number;
+  mime_type?: string;
+  file_size?: number;
+}
+
 export interface TelegramMessage {
   message_id: number;
   from?: TelegramUser;
   chat: TelegramChat;
   text?: string;
+  voice?: TelegramVoice;
 }
 
 export interface TelegramUser {

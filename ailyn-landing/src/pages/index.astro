@@ -1,0 +1,585 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const signupUrl = "https://ailyn-dashboard.pages.dev/signup";
+---
+
+<Layout>
+  <!-- ========== NAVBAR ========== -->
+  <nav class="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0a0f1e]/80 backdrop-blur-xl">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      <a href="/" class="text-xl font-bold tracking-tight">
+        <span class="bg-gradient-to-r from-[#7c3aed] to-[#ec4899] bg-clip-text text-transparent">Ailyn</span>
+      </a>
+      <div class="hidden items-center gap-8 text-sm font-medium text-slate-400 md:flex">
+        <a href="#canales" class="transition hover:text-white">Canales</a>
+        <a href="#features" class="transition hover:text-white">Features</a>
+        <a href="#demo" class="transition hover:text-white">Demo</a>
+        <a href="#precios" class="transition hover:text-white">Precios</a>
+      </div>
+      <a
+        href={signupUrl}
+        class="rounded-full bg-gradient-to-r from-[#7c3aed] to-[#ec4899] px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+      >
+        Empieza gratis
+      </a>
+    </div>
+  </nav>
+
+  <!-- ========== HERO ========== -->
+  <section class="relative flex min-h-screen items-center justify-center overflow-hidden px-6 pt-20">
+    <!-- Animated gradient orb -->
+    <div class="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+      <div class="hero-orb h-[600px] w-[600px] rounded-full opacity-30 blur-[120px]"></div>
+    </div>
+
+    <div class="relative z-10 mx-auto max-w-4xl text-center">
+      <!-- Badge -->
+      <div class="fade-up mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
+        <span>&#10024;</span> 4 canales &middot; 4 modelos de IA &middot; 1 asistente
+      </div>
+
+      <!-- Headline -->
+      <h1 class="fade-up mb-6 text-4xl font-bold leading-tight tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+        Tu asistente de IA que
+        <span class="bg-gradient-to-r from-[#7c3aed] to-[#ec4899] bg-clip-text text-transparent">
+          vende, agenda y da seguimiento
+        </span>
+      </h1>
+
+      <!-- Subheadline -->
+      <p class="fade-up mx-auto mb-10 max-w-2xl text-lg text-slate-400 sm:text-xl">
+        Ailyn automatiza emails, reuniones y follow-ups desde WhatsApp, Telegram o tu escritorio.
+        Para PyMEs que quieren crecer sin contratar m&aacute;s.
+      </p>
+
+      <!-- CTAs -->
+      <div class="fade-up flex flex-col items-center justify-center gap-4 sm:flex-row">
+        <a
+          href={signupUrl}
+          class="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#ec4899] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-purple-500/25 transition hover:shadow-purple-500/40 hover:brightness-110"
+        >
+          Empieza gratis
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </a>
+        <a
+          href="#demo"
+          class="inline-flex items-center gap-2 rounded-full border border-white/20 px-8 py-4 text-base font-semibold text-slate-300 transition hover:border-white/40 hover:text-white"
+        >
+          Ver demo
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Bottom fade -->
+    <div class="pointer-events-none absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#0a0f1e] to-transparent"></div>
+  </section>
+
+  <!-- ========== CHANNELS ========== -->
+  <section id="canales" class="px-6 py-24 sm:py-32 section-glow">
+    <div class="mx-auto max-w-6xl">
+      <div class="mb-16 text-center">
+        <h2 class="fade-up mb-4 text-3xl font-bold sm:text-4xl">Un asistente, todos tus canales</h2>
+        <p class="fade-up text-lg text-slate-400">Conecta Ailyn donde ya trabajan tus clientes y tu equipo</p>
+      </div>
+
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <!-- Telegram -->
+        <div class="fade-up group rounded-2xl border border-white/10 bg-[#111827] p-6 transition hover:border-[#7c3aed]/40 hover:shadow-lg hover:shadow-purple-500/10 hover:glow-purple">
+          <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#229ED9]/10 text-2xl">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#229ED9]" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+            </svg>
+          </div>
+          <h3 class="mb-2 text-lg font-semibold">Telegram</h3>
+          <p class="text-sm text-slate-400">Env&iacute;a mensajes de texto o audio. Ailyn entiende, ejecuta y responde al instante.</p>
+        </div>
+
+        <!-- WhatsApp -->
+        <div class="fade-up group rounded-2xl border border-white/10 bg-[#111827] p-6 transition hover:border-[#7c3aed]/40 hover:shadow-lg hover:shadow-purple-500/10 hover:glow-purple">
+          <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#25D366]/10 text-2xl">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#25D366]" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" />
+            </svg>
+          </div>
+          <h3 class="mb-2 text-lg font-semibold">WhatsApp</h3>
+          <p class="text-sm text-slate-400">Pronto disponible. El canal favorito de Latinoam&eacute;rica, integrado con Ailyn.</p>
+        </div>
+
+        <!-- Desktop App -->
+        <div class="fade-up group rounded-2xl border border-white/10 bg-[#111827] p-6 transition hover:border-[#7c3aed]/40 hover:shadow-lg hover:shadow-purple-500/10 hover:glow-purple">
+          <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#7c3aed]/10 text-2xl">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#7c3aed]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25A2.25 2.25 0 0 1 5.25 3h13.5A2.25 2.25 0 0 1 21 5.25Z" />
+            </svg>
+          </div>
+          <h3 class="mb-2 text-lg font-semibold">Desktop App</h3>
+          <p class="text-sm text-slate-400">Ejecuta tareas en tu computadora: mover archivos, abrir apps, automatizar tu escritorio.</p>
+        </div>
+
+        <!-- Web Chat -->
+        <div class="fade-up group rounded-2xl border border-white/10 bg-[#111827] p-6 transition hover:border-[#7c3aed]/40 hover:shadow-lg hover:shadow-purple-500/10 hover:glow-purple">
+          <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#ec4899]/10 text-2xl">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#ec4899]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
+            </svg>
+          </div>
+          <h3 class="mb-2 text-lg font-semibold">Web Chat</h3>
+          <p class="text-sm text-slate-400">Dashboard completo con historial, leads, automatizaciones y m&eacute;tricas en tiempo real.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== FEATURES ========== -->
+  <section id="features" class="px-6 py-24 sm:py-32 section-glow circuit-accent">
+    <div class="mx-auto max-w-6xl">
+      <div class="mb-16 text-center">
+        <h2 class="fade-up mb-4 text-3xl font-bold sm:text-4xl">Todo lo que necesitas para vender m&aacute;s</h2>
+        <p class="fade-up text-lg text-slate-400">Seis capacidades que reemplazan un equipo completo</p>
+      </div>
+
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <!-- Feature 1 -->
+        <div class="fade-up rounded-2xl border border-white/10 bg-[#111827] p-8 transition hover:border-[#7c3aed]/30">
+          <div class="mb-4 text-3xl">&#128231;</div>
+          <h3 class="mb-3 text-lg font-semibold">Emails inteligentes</h3>
+          <p class="text-sm leading-relaxed text-slate-400">
+            Dile &ldquo;env&iacute;ale un email a Pedro con propuesta&rdquo; y Ailyn redacta, te muestra preview y env&iacute;a con un click.
+          </p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="fade-up rounded-2xl border border-white/10 bg-[#111827] p-8 transition hover:border-[#7c3aed]/30">
+          <div class="mb-4 text-3xl">&#128197;</div>
+          <h3 class="mb-3 text-lg font-semibold">Agenda reuniones</h3>
+          <p class="text-sm leading-relaxed text-slate-400">
+            Detecta conflictos en tu calendario y agenda con botones de confirmaci&oacute;n. Sin ir y venir de emails.
+          </p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="fade-up rounded-2xl border border-white/10 bg-[#111827] p-8 transition hover:border-[#7c3aed]/30">
+          <div class="mb-4 text-3xl">&#128260;</div>
+          <h3 class="mb-3 text-lg font-semibold">Follow-ups autom&aacute;ticos</h3>
+          <p class="text-sm leading-relaxed text-slate-400">
+            Programa seguimientos: &ldquo;si no responde en 3 d&iacute;as, dale follow-up&rdquo;. El cron lo ejecuta solo.
+          </p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="fade-up rounded-2xl border border-white/10 bg-[#111827] p-8 transition hover:border-[#7c3aed]/30">
+          <div class="mb-4 text-3xl">&#127897;</div>
+          <h3 class="mb-3 text-lg font-semibold">Notas de voz</h3>
+          <p class="text-sm leading-relaxed text-slate-400">
+            Manda un audio y Ailyn lo transcribe, entiende y ejecuta la acci&oacute;n. Perfecto para cuando vas manejando.
+          </p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="fade-up rounded-2xl border border-white/10 bg-[#111827] p-8 transition hover:border-[#7c3aed]/30">
+          <div class="mb-4 text-3xl">&#129504;</div>
+          <h3 class="mb-3 text-lg font-semibold">4 cerebros</h3>
+          <p class="text-sm leading-relaxed text-slate-400">
+            Llama (gratis), Sonnet, Opus y GPT-4o. Ailyn elige el m&aacute;s eficiente para cada tarea autom&aacute;ticamente.
+          </p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="fade-up rounded-2xl border border-white/10 bg-[#111827] p-8 transition hover:border-[#7c3aed]/30">
+          <div class="mb-4 text-3xl">&#9989;</div>
+          <h3 class="mb-3 text-lg font-semibold">Aprobaci&oacute;n humana</h3>
+          <p class="text-sm leading-relaxed text-slate-400">
+            Nada se env&iacute;a sin tu OK. Botones de aprobar, corregir o cancelar en cada acci&oacute;n cr&iacute;tica.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== DEMO ========== -->
+  <section id="demo" class="px-6 py-24 sm:py-32 section-glow">
+    <div class="mx-auto max-w-6xl">
+      <div class="mb-16 text-center">
+        <h2 class="fade-up mb-4 text-3xl font-bold sm:text-4xl">As&iacute; funciona Ailyn</h2>
+        <p class="fade-up text-lg text-slate-400">De tu mensaje a la acci&oacute;n en tres pasos</p>
+      </div>
+
+      <div class="grid gap-8 lg:grid-cols-3">
+        <!-- Step 1 -->
+        <div class="fade-up rounded-2xl border border-white/10 bg-[#111827] p-8">
+          <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-[#7c3aed] to-[#ec4899] text-sm font-bold text-white">
+            1
+          </div>
+          <h3 class="mb-4 text-lg font-semibold">Habla naturalmente</h3>
+          <!-- Chat bubble mockup -->
+          <div class="rounded-2xl rounded-bl-md bg-[#1e293b] p-4">
+            <p class="text-sm text-slate-300">
+              &ldquo;Env&iacute;ale un email a Pedro con una propuesta de tarjetas digitales y ag&eacute;ndame reuni&oacute;n el jueves a las 3&rdquo;
+            </p>
+          </div>
+          <div class="mt-3 flex items-center gap-2 text-xs text-slate-500">
+            <div class="h-2 w-2 rounded-full bg-green-500"></div>
+            Mensaje enviado
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="fade-up rounded-2xl border border-white/10 bg-[#111827] p-8">
+          <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-[#7c3aed] to-[#ec4899] text-sm font-bold text-white">
+            2
+          </div>
+          <h3 class="mb-4 text-lg font-semibold">Ailyn act&uacute;a</h3>
+          <!-- Draft mockup -->
+          <div class="space-y-3 rounded-2xl rounded-bl-md bg-[#1e293b] p-4">
+            <div class="flex items-center gap-2">
+              <div class="h-2 w-2 rounded-full bg-[#7c3aed]"></div>
+              <span class="text-xs font-medium text-slate-400">Borrador de email</span>
+            </div>
+            <p class="text-sm text-slate-300">
+              Hola Pedro, te comparto la propuesta de tarjetas digitales...
+            </p>
+            <div class="flex gap-2 pt-2">
+              <button class="rounded-lg bg-green-600/20 px-3 py-1.5 text-xs font-medium text-green-400 transition hover:bg-green-600/30">
+                &#10003; Aprobar
+              </button>
+              <button class="rounded-lg bg-yellow-600/20 px-3 py-1.5 text-xs font-medium text-yellow-400 transition hover:bg-yellow-600/30">
+                &#9998; Corregir
+              </button>
+              <button class="rounded-lg bg-red-600/20 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-600/30">
+                &#10005; Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="fade-up rounded-2xl border border-white/10 bg-[#111827] p-8">
+          <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-[#7c3aed] to-[#ec4899] text-sm font-bold text-white">
+            3
+          </div>
+          <h3 class="mb-4 text-lg font-semibold">T&uacute; decides</h3>
+          <!-- Result mockup -->
+          <div class="space-y-3">
+            <div class="flex items-center gap-3 rounded-xl bg-green-500/10 p-3">
+              <span class="text-lg">&#9989;</span>
+              <span class="text-sm font-medium text-green-400">Email enviado a Pedro</span>
+            </div>
+            <div class="flex items-center gap-3 rounded-xl bg-blue-500/10 p-3">
+              <span class="text-lg">&#128197;</span>
+              <span class="text-sm font-medium text-blue-400">Reuni&oacute;n agendada &mdash; Jueves 3:00 PM</span>
+            </div>
+            <div class="flex items-center gap-3 rounded-xl bg-purple-500/10 p-3">
+              <span class="text-lg">&#128260;</span>
+              <span class="text-sm font-medium text-purple-400">Follow-up programado en 3 d&iacute;as</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== PRICING ========== -->
+  <section id="precios" class="px-6 py-24 sm:py-32">
+    <div class="mx-auto max-w-6xl">
+      <div class="mb-16 text-center">
+        <h2 class="fade-up mb-4 text-3xl font-bold sm:text-4xl">Planes simples, sin sorpresas</h2>
+        <p class="fade-up text-lg text-slate-400">Empieza gratis. Escala cuando lo necesites.</p>
+      </div>
+
+      <div class="grid gap-8 lg:grid-cols-3">
+        <!-- Free -->
+        <div class="fade-up flex flex-col rounded-2xl border border-white/10 bg-[#111827] p-8">
+          <div class="mb-6">
+            <h3 class="mb-1 text-lg font-semibold text-slate-300">Free</h3>
+            <div class="flex items-baseline gap-1">
+              <span class="text-4xl font-bold">$0</span>
+              <span class="text-slate-500">/mes</span>
+            </div>
+          </div>
+          <ul class="mb-8 flex-1 space-y-3 text-sm text-slate-400">
+            <li class="flex items-center gap-2">
+              <svg class="h-4 w-4 flex-shrink-0 text-[#7c3aed]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              20 mensajes/mes
+            </li>
+            <li class="flex items-center gap-2">
+              <svg class="h-4 w-4 flex-shrink-0 text-[#7c3aed]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              5 leads
+            </li>
+            <li class="flex items-center gap-2">
+              <svg class="h-4 w-4 flex-shrink-0 text-[#7c3aed]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              1 automatizaci&oacute;n
+            </li>
+            <li class="flex items-center gap-2">
+              <svg class="h-4 w-4 flex-shrink-0 text-[#7c3aed]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Llama 70B
+            </li>
+          </ul>
+          <a
+            href={signupUrl}
+            class="block rounded-xl border border-white/20 py-3 text-center text-sm font-semibold text-slate-300 transition hover:border-white/40 hover:text-white"
+          >
+            Empieza gratis
+          </a>
+        </div>
+
+        <!-- Pro (highlighted) -->
+        <div class="fade-up relative flex flex-col rounded-2xl border-2 border-[#7c3aed] bg-[#111827] p-8 shadow-lg shadow-purple-500/10">
+          <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#ec4899] px-4 py-1 text-xs font-semibold text-white">
+            M&aacute;s popular
+          </div>
+          <div class="mb-6">
+            <h3 class="mb-1 text-lg font-semibold text-white">Pro</h3>
+            <div class="flex items-baseline gap-1">
+              <span class="text-4xl font-bold">$49</span>
+              <span class="text-slate-500">/mes</span>
+            </div>
+          </div>
+          <ul class="mb-8 flex-1 space-y-3 text-sm text-slate-400">
+            <li class="flex items-center gap-2">
+              <svg class="h-4 w-4 flex-shrink-0 text-[#ec4899]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              2,000 mensajes/mes
+            </li>
+            <li class="flex items-center gap-2">
+              <svg class="h-4 w-4 flex-shrink-0 text-[#ec4899]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              500 leads
+            </li>
+            <li class="flex items-center gap-2">
+              <svg class="h-4 w-4 flex-shrink-0 text-[#ec4899]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              10 automatizaciones
+            </li>
+            <li class="flex items-center gap-2">
+              <svg class="h-4 w-4 flex-shrink-0 text-[#ec4899]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Sonnet + Opus
+            </li>
+          </ul>
+          <a
+            href={signupUrl}
+            class="block rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#ec4899] py-3 text-center text-sm font-semibold text-white shadow-lg shadow-purple-500/25 transition hover:shadow-purple-500/40 hover:brightness-110"
+          >
+            Elegir Pro
+          </a>
+        </div>
+
+        <!-- Enterprise -->
+        <div class="fade-up flex flex-col rounded-2xl border border-white/10 bg-[#111827] p-8">
+          <div class="mb-6">
+            <h3 class="mb-1 text-lg font-semibold text-slate-300">Enterprise</h3>
+            <div class="flex items-baseline gap-1">
+              <span class="text-4xl font-bold">$149</span>
+              <span class="text-slate-500">/mes</span>
+            </div>
+          </div>
+          <ul class="mb-8 flex-1 space-y-3 text-sm text-slate-400">
+            <li class="flex items-center gap-2">
+              <svg class="h-4 w-4 flex-shrink-0 text-[#7c3aed]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Mensajes ilimitados
+            </li>
+            <li class="flex items-center gap-2">
+              <svg class="h-4 w-4 flex-shrink-0 text-[#7c3aed]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              6 agentes
+            </li>
+            <li class="flex items-center gap-2">
+              <svg class="h-4 w-4 flex-shrink-0 text-[#7c3aed]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Automatizaciones ilimitadas
+            </li>
+            <li class="flex items-center gap-2">
+              <svg class="h-4 w-4 flex-shrink-0 text-[#7c3aed]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Soporte prioritario
+            </li>
+          </ul>
+          <a
+            href={signupUrl}
+            class="block rounded-xl border border-white/20 py-3 text-center text-sm font-semibold text-slate-300 transition hover:border-white/40 hover:text-white"
+          >
+            Contactar ventas
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== CTA FINAL ========== -->
+  <section class="px-6 py-24 sm:py-32">
+    <div class="fade-up mx-auto max-w-3xl rounded-3xl border border-white/10 bg-gradient-to-br from-[#7c3aed]/20 to-[#ec4899]/10 p-12 text-center sm:p-16">
+      <h2 class="mb-4 text-3xl font-bold sm:text-4xl">Listo para automatizar tu negocio?</h2>
+      <p class="mb-8 text-lg text-slate-400">
+        Crea tu cuenta gratis en 30 segundos. Sin tarjeta de cr&eacute;dito.
+      </p>
+      <a
+        href={signupUrl}
+        class="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#ec4899] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-purple-500/25 transition hover:shadow-purple-500/40 hover:brightness-110"
+      >
+        Empieza gratis ahora
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="border-t border-white/5 px-6 py-12">
+    <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 sm:flex-row">
+      <div class="flex items-center gap-3">
+        <span class="bg-gradient-to-r from-[#7c3aed] to-[#ec4899] bg-clip-text text-lg font-bold text-transparent">Ailyn</span>
+        <span class="text-sm text-slate-500">Hecho en M&eacute;xico &#127474;&#127485;</span>
+      </div>
+      <div class="flex items-center gap-6 text-sm text-slate-500">
+        <a href="https://ailyn-dashboard.pages.dev" class="transition hover:text-slate-300">Dashboard</a>
+        <a href="#" class="transition hover:text-slate-300">Docs</a>
+        <a href="#" class="transition hover:text-slate-300">Contacto</a>
+      </div>
+      <p class="text-sm text-slate-600">&copy; 2026 Ailyn Labs</p>
+    </div>
+  </footer>
+
+  <!-- ========== STYLES ========== -->
+  <style>
+    @keyframes orb-float {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.15); }
+    }
+
+    @keyframes orb-color {
+      0%, 100% { background: radial-gradient(circle, #7c3aed 0%, #ec4899 50%, transparent 70%); }
+      50% { background: radial-gradient(circle, #ec4899 0%, #7c3aed 50%, transparent 70%); }
+    }
+
+    .hero-orb {
+      background: radial-gradient(circle, #7c3aed 0%, #ec4899 50%, transparent 70%);
+      animation: orb-float 8s ease-in-out infinite, orb-color 12s ease-in-out infinite;
+    }
+  </style>
+
+  <!-- ========== SCROLL ANIMATIONS ========== -->
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-in');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+  </script>
+
+  <!-- Webchat Widget -->
+  <div id="chatWidget" style="position:fixed;bottom:24px;right:24px;z-index:100;">
+    <!-- Chat panel (hidden by default) -->
+    <div id="chatPanel" style="display:none;position:absolute;bottom:72px;right:0;width:380px;height:520px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);box-shadow:0 20px 60px rgba(0,0,0,0.5);transition:all 0.3s ease;transform:translateY(20px);opacity:0;">
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#7c3aed,#ec4899);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;">A</div>
+          <div>
+            <div style="font-weight:600;font-size:13px;color:#fff;">Ailyn</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.7);">Asistente de IA · En línea</div>
+          </div>
+        </div>
+        <button onclick="toggleChat()" style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:18px;padding:4px;">&#10005;</button>
+      </div>
+      <!-- Iframe -->
+      <iframe id="chatIframe" style="width:100%;height:calc(100% - 56px);border:none;background:#0a0f1e;" loading="lazy"></iframe>
+    </div>
+
+    <!-- Floating button -->
+    <button id="chatBtn" onclick="toggleChat()" style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#ec4899);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(124,58,237,0.4);transition:all 0.3s ease;">
+      <svg id="chatIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+    </button>
+
+    <!-- Tooltip -->
+    <div id="chatTooltip" style="position:absolute;bottom:68px;right:0;background:#111827;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 14px;white-space:nowrap;font-size:13px;color:#f1f5f9;box-shadow:0 4px 12px rgba(0,0,0,0.3);animation:fadeInUp 0.5s ease 2s both;">
+      &#128172; Prueba Ailyn ahora
+      <div style="position:absolute;bottom:-6px;right:20px;width:12px;height:12px;background:#111827;border-right:1px solid rgba(255,255,255,0.1);border-bottom:1px solid rgba(255,255,255,0.1);transform:rotate(45deg);"></div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    #chatBtn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 6px 28px rgba(124,58,237,0.5);
+    }
+    @media (max-width: 480px) {
+      #chatPanel {
+        width: calc(100vw - 32px) !important;
+        height: 70vh !important;
+        right: -8px !important;
+      }
+    }
+  </style>
+
+  <script is:inline>
+    var chatOpen = false;
+    var iframeLoaded = false;
+
+    window.toggleChat = function() {
+      chatOpen = !chatOpen;
+      var panel = document.getElementById('chatPanel');
+      var tooltip = document.getElementById('chatTooltip');
+
+      if (chatOpen) {
+        if (!iframeLoaded) {
+          document.getElementById('chatIframe').src = 'https://ailyn-dashboard.pages.dev/chat/ailyn-labs';
+          iframeLoaded = true;
+        }
+        panel.style.display = 'block';
+        if (tooltip) tooltip.style.display = 'none';
+        setTimeout(function() {
+          panel.style.transform = 'translateY(0)';
+          panel.style.opacity = '1';
+        }, 10);
+      } else {
+        panel.style.transform = 'translateY(20px)';
+        panel.style.opacity = '0';
+        setTimeout(function() { panel.style.display = 'none'; }, 300);
+      }
+    };
+
+    setTimeout(function() {
+      var tooltip = document.getElementById('chatTooltip');
+      if (tooltip && !chatOpen) {
+        tooltip.style.opacity = '0';
+        tooltip.style.transition = 'opacity 0.3s';
+        setTimeout(function() { tooltip.style.display = 'none'; }, 300);
+      }
+    }, 8000);
+  </script>
+</Layout>

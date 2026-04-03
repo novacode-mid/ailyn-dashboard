@@ -106,12 +106,13 @@ async function callAnthropic(
       "Content-Type": "application/json",
       "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
+      "anthropic-beta": "prompt-caching-2024-07-31",
     },
     body: JSON.stringify({
       model,
       max_tokens: maxTokens,
       temperature,
-      system: systemPrompt,
+      system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
       messages,
     }),
   });
@@ -202,9 +203,24 @@ export async function runLLM(
   systemPrompt: string,
   userMessage: string,
   companyId?: string | number,
-  history: ChatTurn[] = []
+  history: ChatTurn[] = [],
+  /** If true, force Cloudflare Llama regardless of task (used for free-tier companies) */
+  forceCloudflare = false
 ): Promise<LLMResponse> {
   const config = selectModel(task);
+
+  // Free-tier override: downgrade to Llama 70B
+  if (forceCloudflare && config.provider !== "cloudflare") {
+    const text = await callCloudflare(
+      env.AI,
+      "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+      systemPrompt,
+      userMessage,
+      config.maxTokens,
+      history
+    );
+    return { text, provider: "cloudflare", model: "llama-3.3-70b-free-tier" };
+  }
 
   // Resolver keys: KV por tenant → secret global → fallback a Llama
   const kvPrefix = companyId !== undefined ? `config:${companyId}:` : null;

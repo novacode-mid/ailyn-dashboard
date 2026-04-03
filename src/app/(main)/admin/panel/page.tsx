@@ -1,32 +1,167 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import CompaniesTab from "@/features/admin/components/panel/CompaniesTab";
-import CompanyDetailTab from "@/features/admin/components/panel/CompanyDetailTab";
-import KnowledgeTab from "@/features/admin/components/panel/KnowledgeTab";
-import MetricsTab from "@/features/admin/components/panel/MetricsTab";
 
-type Tab = "companies" | "detail" | "knowledge" | "metrics";
+type Tab = "overview" | "empresas" | "actividad" | "followups" | "sistema";
 
-export default function AdminPanelPage() {
+interface Company {
+  id: number;
+  name: string;
+  slug: string;
+  plan_slug: string;
+  industry: string;
+  created_at: string;
+  user_count: number;
+  message_count: number;
+  emails_sent: number;
+  meetings_count: number;
+  telegram_bot: string | null;
+  has_whatsapp: number;
+  has_google: number;
+}
+
+interface Stats {
+  total_companies: number;
+  total_users: number;
+  total_messages: number;
+  messages_24h: number;
+  messages_7d: number;
+  total_emails: number;
+  total_meetings: number;
+  total_followups: number;
+  total_leads: number;
+}
+
+interface RecentAction {
+  id: number;
+  company_id: string;
+  action_type: string;
+  action_data: Record<string, unknown>;
+  status: string;
+  created_at: string;
+  executed_at: string | null;
+  company_name: string;
+}
+
+interface Followup {
+  id: number;
+  company_id: string;
+  action_data: Record<string, unknown>;
+  status: string;
+  followup_scheduled_at: string | null;
+  followup_number: number;
+  company_name: string;
+}
+
+const WORKER_URL = "https://ailyn-agent.novacodepro.workers.dev";
+const getAdminToken = () => sessionStorage.getItem("ailyn_admin_token") ?? "";
+const adminHeaders = () => ({ "Content-Type": "application/json", "X-CF-Token": getAdminToken() });
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "ahora";
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d`;
+}
+
+const ACTION_LABELS: Record<string, string> = {
+  send_email: "Email",
+  schedule_meeting: "Reunion",
+  send_followup: "Follow-up",
+  create_lead: "Lead",
+  update_lead: "Lead Update",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  executed: "bg-green-900/50 text-green-400",
+  pending: "bg-yellow-900/50 text-yellow-400",
+  scheduled: "bg-blue-900/50 text-blue-400",
+  cancelled: "bg-gray-800 text-gray-500",
+  failed: "bg-red-900/50 text-red-400",
+};
+
+const PLANS = ["free", "starter", "pro", "enterprise"];
+
+export default function SuperadminPage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>("companies");
-  const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
+  const [tab, setTab] = useState<Tab>("overview");
+  const [loading, setLoading] = useState(true);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [recentActions, setRecentActions] = useState<RecentAction[]>([]);
+  const [systemStatus, setSystemStatus] = useState("active");
+  const [activeFollowups, setActiveFollowups] = useState<Followup[]>([]);
+  const [planEditing, setPlanEditing] = useState<number | null>(null);
 
-  useEffect(() => {
-    const token = sessionStorage.getItem("ailyn_admin_token");
-    if (!token) {
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${WORKER_URL}/api/admin/superadmin`, { headers: adminHeaders() });
+      if (!res.ok) throw new Error("Unauthorized");
+      const data = await res.json();
+      setCompanies(data.companies ?? []);
+      setStats(data.stats ?? null);
+      setRecentActions(data.recentActions ?? []);
+      setSystemStatus(data.systemStatus ?? "active");
+      setActiveFollowups(data.activeFollowups ?? []);
+    } catch {
+      sessionStorage.removeItem("ailyn_admin_token");
       router.replace("/admin");
-    } else {
-      setReady(true);
+    } finally {
+      setLoading(false);
     }
   }, [router]);
 
-  function handleSelectCompany(id: number, goTo: "detail" | "knowledge") {
-    setSelectedCompanyId(id);
-    setActiveTab(goTo);
+  useEffect(() => {
+    const token = sessionStorage.getItem("ailyn_admin_token");
+    if (!token) { router.replace("/admin"); return; }
+    setReady(true);
+    fetchData();
+  }, [router, fetchData]);
+
+  async function toggleSystem() {
+    const res = await fetch(`${WORKER_URL}/api/admin/system/toggle`, { method: "POST", headers: adminHeaders() });
+    if (res.ok) {
+      const data = await res.json();
+      setSystemStatus(data.status);
+    }
+  }
+
+  async function changePlan(companyId: number, newPlan: string) {
+    await fetch(`${WORKER_URL}/api/admin/company/${companyId}/plan`, {
+      method: "POST",
+      headers: adminHeaders(),
+      body: JSON.stringify({ plan_slug: newPlan }),
+    });
+    setPlanEditing(null);
+    fetchData();
+  }
+
+  async function impersonate(companyId: number) {
+    try {
+      const res = await fetch(`${WORKER_URL}/api/admin/company/${companyId}/impersonate`, {
+        method: "POST",
+        headers: adminHeaders(),
+      });
+      const data = await res.json() as { token?: string; user?: Record<string, unknown>; error?: string };
+      if (data.token && data.user) {
+        // Guardar sesión del usuario impersonado
+        sessionStorage.setItem("ailyn_token", data.token);
+        sessionStorage.setItem("ailyn_user", JSON.stringify(data.user));
+        // Abrir dashboard en nueva pestaña
+        window.open("/dashboard", "_blank");
+      } else {
+        alert(data.error ?? "Error al impersonar");
+      }
+    } catch {
+      alert("Error de conexión");
+    }
   }
 
   function handleLogout() {
@@ -36,54 +171,72 @@ export default function AdminPanelPage() {
 
   if (!ready) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-ailyn-400 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: "companies", label: "Clientes" },
-    { id: "detail", label: "Detalle" },
-    { id: "knowledge", label: "Knowledge Base" },
-    { id: "metrics", label: "Métricas" },
+    { id: "overview", label: "Overview" },
+    { id: "empresas", label: "Empresas" },
+    { id: "actividad", label: "Actividad Global" },
+    { id: "followups", label: "Follow-ups" },
+    { id: "sistema", label: "Sistema" },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-[#0f172a] text-white relative overflow-hidden">
+      {/* Background orbs */}
+      <div className="orb orb-purple" />
+      <div className="orb orb-cyan" />
+      <div className="orb orb-pink" />
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900">
+      <header className="border-b border-white/[0.08] glass-sidebar">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-md bg-ailyn-400 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">A</span>
+            <div className="w-7 h-7 rounded-md bg-amber-500 flex items-center justify-center">
+              <span className="text-white font-bold text-xs">SA</span>
             </div>
-            <span className="font-semibold text-white">Ailyn</span>
-            <span className="text-gray-500 text-sm">/ Admin Panel</span>
+            <span className="font-semibold text-white">Ailyn Superadmin</span>
+            <button
+              onClick={toggleSystem}
+              className="flex items-center gap-1.5 ml-4 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer"
+              style={{
+                borderColor: systemStatus === "active" ? "#22c55e" : "#ef4444",
+                background: systemStatus === "active" ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
+                color: systemStatus === "active" ? "#4ade80" : "#f87171",
+              }}
+            >
+              <span className={`w-2 h-2 rounded-full ${systemStatus === "active" ? "bg-green-400" : "bg-red-400"}`} />
+              {systemStatus === "active" ? "Activo" : "Pausado"}
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            className="text-gray-400 hover:text-white text-sm transition-colors"
-          >
-            Salir
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={fetchData} className="text-gray-400 hover:text-white text-sm transition-colors">
+              Refrescar
+            </button>
+            <button onClick={handleLogout} className="text-gray-400 hover:text-white text-sm transition-colors">
+              Salir
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Tabs */}
-      <div className="border-b border-gray-800 bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 flex gap-1">
-          {tabs.map((tab) => (
+      <div className="border-b border-white/[0.08] glass-sidebar">
+        <div className="max-w-7xl mx-auto px-4 flex gap-1 overflow-x-auto">
+          {tabs.map((t) => (
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                activeTab === tab.id
-                  ? "border-ailyn-400 text-white"
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap ${
+                tab === t.id
+                  ? "border-amber-400 text-white"
                   : "border-transparent text-gray-400 hover:text-gray-200"
               }`}
             >
-              {tab.label}
+              {t.label}
             </button>
           ))}
         </div>
@@ -91,23 +244,346 @@ export default function AdminPanelPage() {
 
       {/* Content */}
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {activeTab === "companies" && (
-          <CompaniesTab onSelectCompany={handleSelectCompany} />
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <>
+            {tab === "overview" && stats && <OverviewTab stats={stats} systemStatus={systemStatus} />}
+            {tab === "empresas" && (
+              <EmpresasTab
+                companies={companies}
+                planEditing={planEditing}
+                setPlanEditing={setPlanEditing}
+                changePlan={changePlan}
+                impersonate={impersonate}
+              />
+            )}
+            {tab === "actividad" && <ActividadTab actions={recentActions} />}
+            {tab === "followups" && <FollowupsTab followups={activeFollowups} />}
+            {tab === "sistema" && <SistemaTab systemStatus={systemStatus} toggleSystem={toggleSystem} />}
+          </>
         )}
-        {activeTab === "detail" && (
-          <CompanyDetailTab
-            companyId={selectedCompanyId}
-            onBack={() => setActiveTab("companies")}
-          />
-        )}
-        {activeTab === "knowledge" && (
-          <KnowledgeTab
-            companyId={selectedCompanyId}
-            onBack={() => setActiveTab("companies")}
-          />
-        )}
-        {activeTab === "metrics" && <MetricsTab />}
       </main>
+    </div>
+  );
+}
+
+/* ── Tab: Overview ─────────────────────────────────────────────────────── */
+
+function OverviewTab({ stats, systemStatus }: { stats: Stats; systemStatus: string }) {
+  const mainCards = [
+    { label: "Total Empresas", value: stats.total_companies, color: "text-amber-400" },
+    { label: "Total Usuarios", value: stats.total_users, color: "text-blue-400" },
+    { label: "Mensajes (24h)", value: stats.messages_24h, color: "text-green-400" },
+    { label: "Mensajes (7d)", value: stats.messages_7d, color: "text-purple-400" },
+  ];
+  const secondaryCards = [
+    { label: "Emails Enviados", value: stats.total_emails },
+    { label: "Reuniones Agendadas", value: stats.total_meetings },
+    { label: "Follow-ups", value: stats.total_followups },
+    { label: "Leads Totales", value: stats.total_leads },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3 mb-2">
+        <h2 className="text-lg font-semibold">Platform Overview</h2>
+        <span
+          className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+            systemStatus === "active" ? "bg-green-900/50 text-green-400" : "bg-red-900/50 text-red-400"
+          }`}
+        >
+          Sistema {systemStatus === "active" ? "Activo" : "Pausado"}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {mainCards.map((c) => (
+          <div key={c.label} className="glass rounded-2xl p-5">
+            <div className="text-gray-400 text-sm mb-1">{c.label}</div>
+            <div className={`text-3xl font-bold ${c.color}`}>{c.value.toLocaleString()}</div>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {secondaryCards.map((c) => (
+          <div key={c.label} className="glass-light rounded-xl p-4">
+            <div className="text-gray-500 text-xs mb-1">{c.label}</div>
+            <div className="text-xl font-semibold text-gray-200">{c.value.toLocaleString()}</div>
+          </div>
+        ))}
+      </div>
+      <div className="glass-light rounded-xl p-4 text-sm text-gray-500">
+        Total mensajes historicos: <span className="text-gray-300 font-medium">{stats.total_messages.toLocaleString()}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ── Tab: Empresas ─────────────────────────────────────────────────────── */
+
+function EmpresasTab({
+  companies,
+  planEditing,
+  setPlanEditing,
+  changePlan,
+  impersonate,
+}: {
+  companies: Company[];
+  planEditing: number | null;
+  setPlanEditing: (id: number | null) => void;
+  changePlan: (id: number, plan: string) => void;
+  impersonate: (id: number) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold">Empresas ({companies.length})</h2>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-white/[0.08] text-left text-white/50">
+              <th className="pb-3 pr-4 font-medium">Empresa</th>
+              <th className="pb-3 pr-4 font-medium">Plan</th>
+              <th className="pb-3 pr-4 font-medium text-center">Usuarios</th>
+              <th className="pb-3 pr-4 font-medium text-center">Mensajes</th>
+              <th className="pb-3 pr-4 font-medium text-center">Emails</th>
+              <th className="pb-3 pr-4 font-medium text-center">Reuniones</th>
+              <th className="pb-3 pr-4 font-medium text-center">TG</th>
+              <th className="pb-3 pr-4 font-medium text-center">WA</th>
+              <th className="pb-3 pr-4 font-medium text-center">Google</th>
+              <th className="pb-3 font-medium">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {companies.map((c, i) => (
+              <tr key={c.id} className={`border-b border-white/[0.05] ${i % 2 === 0 ? "bg-white/[0.03]" : ""}`}>
+                <td className="py-3 pr-4">
+                  <div className="font-medium text-white">{c.name}</div>
+                  <div className="text-gray-500 text-xs">{c.slug} &middot; {c.industry ?? "N/A"}</div>
+                </td>
+                <td className="py-3 pr-4">
+                  {planEditing === c.id ? (
+                    <select
+                      className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white"
+                      defaultValue={c.plan_slug ?? "free"}
+                      onChange={(e) => changePlan(c.id, e.target.value)}
+                      onBlur={() => setPlanEditing(null)}
+                      autoFocus
+                    >
+                      {PLANS.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-amber-900/40 text-amber-400">
+                      {c.plan_slug ?? "free"}
+                    </span>
+                  )}
+                </td>
+                <td className="py-3 pr-4 text-center text-gray-300">{c.user_count}</td>
+                <td className="py-3 pr-4 text-center text-gray-300">{c.message_count.toLocaleString()}</td>
+                <td className="py-3 pr-4 text-center text-gray-300">{c.emails_sent}</td>
+                <td className="py-3 pr-4 text-center text-gray-300">{c.meetings_count}</td>
+                <td className="py-3 pr-4 text-center">
+                  {c.telegram_bot ? (
+                    <span className="text-green-400 text-xs" title={c.telegram_bot}>@{c.telegram_bot}</span>
+                  ) : (
+                    <span className="text-gray-600">-</span>
+                  )}
+                </td>
+                <td className="py-3 pr-4 text-center">
+                  {c.has_whatsapp ? <span className="text-green-400">Si</span> : <span className="text-gray-600">-</span>}
+                </td>
+                <td className="py-3 pr-4 text-center">
+                  {c.has_google ? <span className="text-green-400">Si</span> : <span className="text-gray-600">-</span>}
+                </td>
+                <td className="py-3 space-x-3">
+                  <button
+                    onClick={() => setPlanEditing(c.id)}
+                    className="text-amber-400 hover:text-amber-300 text-xs font-medium transition-colors"
+                  >
+                    Plan
+                  </button>
+                  <button
+                    onClick={() => impersonate(c.id)}
+                    className="text-blue-400 hover:text-blue-300 text-xs font-medium transition-colors"
+                  >
+                    Entrar como
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {companies.length === 0 && (
+          <div className="text-center text-gray-500 py-10">Sin empresas registradas</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Tab: Actividad Global ─────────────────────────────────────────────── */
+
+function ActividadTab({ actions }: { actions: RecentAction[] }) {
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold">Actividad Global (ultimas 20)</h2>
+      <div className="space-y-2">
+        {actions.map((a) => {
+          const data = a.action_data ?? {};
+          const subject = (data.subject as string) ?? (data.to as string) ?? "";
+          return (
+            <div key={a.id} className="glass rounded-xl p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-800 text-gray-300 shrink-0">
+                  {ACTION_LABELS[a.action_type] ?? a.action_type}
+                </span>
+                <div className="min-w-0">
+                  <span className="text-amber-400 text-xs font-medium mr-2">{a.company_name ?? "?"}</span>
+                  <span className="text-gray-300 text-sm truncate">{subject}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[a.status] ?? "bg-gray-800 text-gray-400"}`}>
+                  {a.status}
+                </span>
+                <span className="text-gray-500 text-xs w-10 text-right">{timeAgo(a.created_at)}</span>
+              </div>
+            </div>
+          );
+        })}
+        {actions.length === 0 && (
+          <div className="text-center text-gray-500 py-10">Sin actividad reciente</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Tab: Follow-ups Activos ───────────────────────────────────────────── */
+
+function FollowupsTab({ followups }: { followups: Followup[] }) {
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold">Follow-ups Activos ({followups.length})</h2>
+      <div className="space-y-2">
+        {followups.map((f) => {
+          const data = f.action_data ?? {};
+          const to = (data.to as string) ?? "?";
+          const totalSteps = (data.total_followups as number) ?? 3;
+          return (
+            <div key={f.id} className="glass rounded-xl p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-amber-400 text-xs font-medium shrink-0">{f.company_name ?? "?"}</span>
+                <span className="text-gray-300 text-sm truncate">{to}</span>
+                <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-900/40 text-blue-400 shrink-0">
+                  {f.followup_number ?? 1}/{totalSteps}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[f.status] ?? "bg-gray-800 text-gray-400"}`}>
+                  {f.status}
+                </span>
+                <span className="text-gray-500 text-xs">
+                  {f.followup_scheduled_at ? new Date(f.followup_scheduled_at).toLocaleDateString("es") : "-"}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+        {followups.length === 0 && (
+          <div className="text-center text-gray-500 py-10">Sin follow-ups activos</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Tab: Sistema ──────────────────────────────────────────────────────── */
+
+function SistemaTab({ systemStatus, toggleSystem }: { systemStatus: string; toggleSystem: () => void }) {
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <h2 className="text-lg font-semibold">Control del Sistema</h2>
+
+      {/* System toggle */}
+      <div className="glass rounded-2xl p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="font-medium text-white">Estado del Agente</div>
+            <div className="text-gray-400 text-sm mt-1">
+              {systemStatus === "active"
+                ? "El agente esta procesando mensajes, crons y follow-ups normalmente."
+                : "El agente esta PAUSADO. No procesara crons ni follow-ups automaticos."}
+            </div>
+          </div>
+          <button
+            onClick={toggleSystem}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              systemStatus === "active"
+                ? "bg-red-900/50 text-red-400 hover:bg-red-900/80 border border-red-800"
+                : "bg-green-900/50 text-green-400 hover:bg-green-900/80 border border-green-800"
+            }`}
+          >
+            {systemStatus === "active" ? "Pausar Sistema" : "Reanudar Sistema"}
+          </button>
+        </div>
+        {systemStatus !== "active" && (
+          <div className="bg-red-950/50 border border-red-900/50 rounded-lg p-3 text-red-400 text-sm">
+            ADVERTENCIA: El sistema esta pausado. Los crons, follow-ups y acciones automaticas no se ejecutaran hasta que se reanude.
+          </div>
+        )}
+      </div>
+
+      {/* Info cards */}
+      <div className="glass rounded-2xl p-6 space-y-3">
+        <div className="font-medium text-white mb-3">Configuracion</div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-400">Worker URL</span>
+          <span className="text-gray-300 font-mono text-xs">ailyn-agent.novacodepro.workers.dev</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-400">Cron Schedule</span>
+          <span className="text-gray-300 font-mono text-xs">*/5 * * * * (cada 5 min)</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-400">Admin Token</span>
+          <span className="text-gray-300 font-mono text-xs">****{getAdminToken().slice(-4)}</span>
+        </div>
+      </div>
+
+      {/* External links */}
+      <div className="glass rounded-2xl p-6 space-y-3">
+        <div className="font-medium text-white mb-3">Links Externos</div>
+        <div className="flex flex-col gap-2">
+          <a
+            href="https://dash.cloudflare.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-amber-400 hover:text-amber-300 text-sm transition-colors"
+          >
+            Cloudflare Dashboard &rarr;
+          </a>
+          <a
+            href="https://dash.cloudflare.com/?to=/:account/workers"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-amber-400 hover:text-amber-300 text-sm transition-colors"
+          >
+            Workers &amp; Pages &rarr;
+          </a>
+          <a
+            href="https://dash.cloudflare.com/?to=/:account/d1"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-amber-400 hover:text-amber-300 text-sm transition-colors"
+          >
+            D1 Database &rarr;
+          </a>
+        </div>
+      </div>
     </div>
   );
 }

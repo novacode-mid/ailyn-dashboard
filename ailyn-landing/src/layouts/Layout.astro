@@ -1,0 +1,277 @@
+---
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+}
+
+const {
+  title = "Ailyn - Tu asistente de IA para negocios",
+  description = "Ailyn automatiza emails, reuniones y follow-ups desde WhatsApp, Telegram o tu escritorio. Para PyMEs que quieren crecer sin contratar mas.",
+  image = "/og-image.png",
+} = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? "https://ailyn.lat");
+---
+
+<!doctype html>
+<html lang="es" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- SEO -->
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#0a0f1e" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={image} />
+    <meta property="og:locale" content="es_MX" />
+    <meta property="og:site_name" content="Ailyn" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={image} />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style is:global>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      body {
+        margin: 0;
+        background-color: #0a0f1e;
+        color: #f1f5f9;
+        overflow-x: hidden;
+      }
+
+      /* ── Scroll animation ─────────────────────── */
+      .fade-up {
+        opacity: 0;
+        transform: translateY(2rem);
+        transition: opacity 0.6s ease, transform 0.6s ease;
+      }
+      .fade-up.animate-in { opacity: 1; transform: translateY(0); }
+      .fade-up:nth-child(2) { transition-delay: 0.1s; }
+      .fade-up:nth-child(3) { transition-delay: 0.2s; }
+      .fade-up:nth-child(4) { transition-delay: 0.3s; }
+      .fade-up:nth-child(5) { transition-delay: 0.4s; }
+      .fade-up:nth-child(6) { transition-delay: 0.5s; }
+
+      /* ── 3D Perspective Grid ─────────────────── */
+      .grid-bg {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        overflow: hidden;
+        pointer-events: none;
+      }
+      .grid-bg::before {
+        content: '';
+        position: absolute;
+        inset: -50%;
+        background-image:
+          linear-gradient(rgba(124,58,237,0.07) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(124,58,237,0.07) 1px, transparent 1px);
+        background-size: 60px 60px;
+        transform: perspective(500px) rotateX(60deg);
+        transform-origin: center top;
+        animation: gridScroll 20s linear infinite;
+      }
+      .grid-bg::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, transparent 0%, #0a0f1e 70%);
+      }
+      @keyframes gridScroll {
+        0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+        100% { transform: perspective(500px) rotateX(60deg) translateY(60px); }
+      }
+
+      /* ── Floating particles ──────────────────── */
+      .particles {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .particle {
+        position: absolute;
+        width: 2px;
+        height: 2px;
+        border-radius: 50%;
+        background: rgba(124,58,237,0.5);
+        animation: floatParticle linear infinite;
+      }
+      .particle:nth-child(odd) { background: rgba(236,72,153,0.4); }
+      .particle:nth-child(1) { left: 10%; animation-duration: 12s; animation-delay: 0s; }
+      .particle:nth-child(2) { left: 25%; animation-duration: 16s; animation-delay: -3s; width: 3px; height: 3px; }
+      .particle:nth-child(3) { left: 40%; animation-duration: 10s; animation-delay: -5s; }
+      .particle:nth-child(4) { left: 55%; animation-duration: 14s; animation-delay: -2s; width: 3px; height: 3px; }
+      .particle:nth-child(5) { left: 70%; animation-duration: 18s; animation-delay: -8s; }
+      .particle:nth-child(6) { left: 85%; animation-duration: 11s; animation-delay: -4s; width: 2px; height: 2px; }
+      .particle:nth-child(7) { left: 15%; animation-duration: 15s; animation-delay: -6s; }
+      .particle:nth-child(8) { left: 60%; animation-duration: 13s; animation-delay: -1s; width: 3px; height: 3px; }
+      .particle:nth-child(9) { left: 35%; animation-duration: 17s; animation-delay: -7s; }
+      .particle:nth-child(10) { left: 80%; animation-duration: 12s; animation-delay: -9s; }
+      @keyframes floatParticle {
+        0% { transform: translateY(100vh) scale(0); opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+      }
+
+      /* ── Glow effects ────────────────────────── */
+      .glow-purple {
+        box-shadow: 0 0 40px rgba(124,58,237,0.15), 0 0 80px rgba(124,58,237,0.05);
+      }
+      .glow-pink {
+        box-shadow: 0 0 40px rgba(236,72,153,0.15), 0 0 80px rgba(236,72,153,0.05);
+      }
+      .glow-line {
+        position: relative;
+      }
+      .glow-line::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(124,58,237,0.5), rgba(236,72,153,0.5), transparent);
+      }
+
+      /* ── Animated border ─────────────────────── */
+      @keyframes borderGlow {
+        0%, 100% { border-color: rgba(124,58,237,0.2); }
+        50% { border-color: rgba(236,72,153,0.3); }
+      }
+      .border-glow {
+        animation: borderGlow 4s ease-in-out infinite;
+      }
+
+      /* ── Hero orb enhanced ───────────────────── */
+      .hero-orb {
+        background: radial-gradient(circle, rgba(124,58,237,0.4), rgba(236,72,153,0.2), transparent);
+        animation: orbPulse 6s ease-in-out infinite;
+      }
+      @keyframes orbPulse {
+        0%, 100% { transform: scale(1); opacity: 0.3; }
+        50% { transform: scale(1.15); opacity: 0.5; }
+      }
+
+      /* ── Section divider glow ────────────────── */
+      .section-glow {
+        position: relative;
+      }
+      .section-glow::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 200px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(124,58,237,0.6), transparent);
+      }
+
+      /* ── Tech detail: circuit lines ──────────── */
+      .circuit-accent {
+        position: relative;
+        overflow: hidden;
+      }
+      .circuit-accent::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg,
+          transparent 0%,
+          rgba(124,58,237,0.3) 20%,
+          rgba(124,58,237,0.3) 20.5%,
+          transparent 21%,
+          transparent 40%,
+          rgba(236,72,153,0.3) 40%,
+          rgba(236,72,153,0.3) 60%,
+          transparent 60%,
+          transparent 80%,
+          rgba(124,58,237,0.3) 80%,
+          rgba(124,58,237,0.3) 80.5%,
+          transparent 81%
+        );
+      }
+
+      /* ── Noise overlay ───────────────────────── */
+      .noise {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        opacity: 0.03;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        background-repeat: repeat;
+        background-size: 256px 256px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- 3D Grid background -->
+    <div class="grid-bg"></div>
+
+    <!-- Floating particles -->
+    <div class="particles">
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+    </div>
+
+    <!-- Noise texture overlay -->
+    <div class="noise"></div>
+
+    <!-- Content -->
+    <div style="position: relative; z-index: 2;">
+      <slot />
+    </div>
+  </body>
+</html>

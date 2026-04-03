@@ -279,6 +279,7 @@ export async function getAgentProfileById(
 export interface AgentProfile {
   agent_id: number;
   company_id: number;
+  company_name?: string;
   role_prompt: string;
   model_id: string;
   skills: Array<{ name: string; description: string; schema: unknown }>;
@@ -342,7 +343,7 @@ export async function getUserByTelegramId(
   telegramId: string
 ): Promise<User | null> {
   const result = await env.DB.prepare(
-    `SELECT * FROM users WHERE telegram_id = ?`
+    `SELECT * FROM telegram_users WHERE telegram_id = ?`
   )
     .bind(telegramId)
     .first<User>();
@@ -354,7 +355,7 @@ export async function getUserBySmartpassId(
   smartpassId: string
 ): Promise<User | null> {
   const result = await env.DB.prepare(
-    `SELECT * FROM users WHERE smartpass_id = ? AND is_active = 1`
+    `SELECT * FROM telegram_users WHERE smartpass_id = ? AND is_active = 1`
   )
     .bind(smartpassId)
     .first<User>();
@@ -367,7 +368,7 @@ export async function upsertUser(
   username: string | undefined
 ): Promise<void> {
   await env.DB.prepare(
-    `INSERT INTO users (telegram_id, username)
+    `INSERT INTO telegram_users (telegram_id, username)
      VALUES (?, ?)
      ON CONFLICT(telegram_id) DO UPDATE SET username = excluded.username`
   )
@@ -710,6 +711,7 @@ export async function updateWalletPassUrl(
 export interface CompanyWithStats {
   id: number;
   name: string;
+  slug: string | null;
   created_at: string;
   agent_count: number;
   lead_count: number;
@@ -720,18 +722,18 @@ export interface CompanyWithStats {
 export async function listCompaniesWithStats(env: Env): Promise<CompanyWithStats[]> {
   const res = await env.DB.prepare(`
     SELECT
-      c.id, c.name, c.created_at,
+      c.id, c.name, c.slug, c.created_at,
       COUNT(DISTINCT a.id)   AS agent_count,
       COUNT(DISTINCT l.id)   AS lead_count,
       (SELECT COUNT(*) FROM pending_actions pa2
-       WHERE pa2.company_id = c.name AND pa2.action_type = 'send_email'
+       WHERE pa2.company_id = c.slug AND pa2.action_type = 'send_email'
          AND pa2.status = 'executed') AS email_count,
       (SELECT COUNT(*) FROM pending_actions pa3
-       WHERE pa3.company_id = c.name AND pa3.action_type = 'send_followup'
+       WHERE pa3.company_id = c.slug AND pa3.action_type = 'send_followup'
          AND pa3.status IN ('scheduled','executed')) AS followup_count
     FROM companies c
     LEFT JOIN agents a ON a.company_id = c.id
-    LEFT JOIN leads l  ON l.company_id = c.name
+    LEFT JOIN leads l  ON l.company_id = c.slug
     GROUP BY c.id
     ORDER BY c.name ASC
   `).all<CompanyWithStats>();
@@ -739,9 +741,10 @@ export async function listCompaniesWithStats(env: Env): Promise<CompanyWithStats
 }
 
 export async function createCompany(env: Env, name: string): Promise<number> {
+  const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const res = await env.DB.prepare(
-    `INSERT INTO companies (name) VALUES (?)`
-  ).bind(name.trim()).run();
+    `INSERT INTO companies (name, slug) VALUES (?, ?)`
+  ).bind(name.trim(), slug).run();
   return res.meta.last_row_id as number;
 }
 
@@ -870,29 +873,29 @@ export interface CompanyMetrics {
   recent_leads: { contact_name: string; contact_company: string | null; lead_score: number; created_at: string }[];
 }
 
-export async function getCompanyMetrics(env: Env, companyName: string): Promise<CompanyMetrics> {
+export async function getCompanyMetrics(env: Env, companySlug: string): Promise<CompanyMetrics> {
   const [totals, byUrgency, recent, actions] = await Promise.all([
     env.DB.prepare(`
       SELECT
         COUNT(*) AS total_leads,
         SUM(CASE WHEN lead_score >= 80 THEN 1 ELSE 0 END) AS leads_high_score
       FROM leads WHERE company_id = ?
-    `).bind(companyName).first<{ total_leads: number; leads_high_score: number }>(),
+    `).bind(companySlug).first<{ total_leads: number; leads_high_score: number }>(),
     env.DB.prepare(`
       SELECT urgency, COUNT(*) AS count FROM leads
       WHERE company_id = ? GROUP BY urgency ORDER BY count DESC
-    `).bind(companyName).all<{ urgency: string; count: number }>(),
+    `).bind(companySlug).all<{ urgency: string; count: number }>(),
     env.DB.prepare(`
       SELECT contact_name, contact_company, lead_score, created_at FROM leads
       WHERE company_id = ? ORDER BY created_at DESC LIMIT 10
-    `).bind(companyName).all<{ contact_name: string; contact_company: string | null; lead_score: number; created_at: string }>(),
+    `).bind(companySlug).all<{ contact_name: string; contact_company: string | null; lead_score: number; created_at: string }>(),
     env.DB.prepare(`
       SELECT
         SUM(CASE WHEN action_type = 'send_email' AND status = 'executed' THEN 1 ELSE 0 END) AS emails_sent,
         SUM(CASE WHEN action_type = 'send_followup' AND status = 'scheduled' THEN 1 ELSE 0 END) AS followups_pending,
         SUM(CASE WHEN action_type = 'send_followup' AND status = 'executed' THEN 1 ELSE 0 END) AS followups_executed
       FROM pending_actions WHERE company_id = ?
-    `).bind(companyName).first<{ emails_sent: number; followups_pending: number; followups_executed: number }>(),
+    `).bind(companySlug).first<{ emails_sent: number; followups_pending: number; followups_executed: number }>(),
   ]);
 
   return {
@@ -934,7 +937,7 @@ export async function getGlobalMetrics(env: Env): Promise<GlobalMetrics> {
     env.DB.prepare(`
       SELECT c.name, COUNT(l.id) AS lead_count
       FROM companies c
-      LEFT JOIN leads l ON l.company_id = c.name
+      LEFT JOIN leads l ON l.company_id = c.slug
       GROUP BY c.id
       ORDER BY lead_count DESC
       LIMIT 5
@@ -949,4 +952,235 @@ export async function getGlobalMetrics(env: Env): Promise<GlobalMetrics> {
     leads_last_30d: leadsPerDay.results ?? [],
     top_companies: topCompanies.results ?? [],
   };
+}
+
+// ── Client Auth ───────────────────────────────────────────────────────────
+
+export interface ClientUser {
+  id: number;
+  email: string;
+  name: string;
+  company_id: number;
+  role: string;
+  created_at: string;
+}
+
+export interface ClientUserWithCompany extends ClientUser {
+  company_name: string;
+  company_slug: string | null;
+  setup_completed: number;
+}
+
+export async function getUserByEmail(env: Env, email: string): Promise<(ClientUser & { password_hash: string }) | null> {
+  return env.DB.prepare(
+    `SELECT id, email, password_hash, name, company_id, role, created_at FROM users WHERE email = ?`
+  ).bind(email.toLowerCase().trim()).first<ClientUser & { password_hash: string }>();
+}
+
+export async function createClientUser(
+  env: Env,
+  email: string,
+  passwordHash: string,
+  name: string,
+  companyId: number
+): Promise<number> {
+  const res = await env.DB.prepare(
+    `INSERT INTO users (email, password_hash, name, company_id) VALUES (?, ?, ?, ?)`
+  ).bind(email.toLowerCase().trim(), passwordHash, name.trim(), companyId).run();
+  return res.meta.last_row_id as number;
+}
+
+export async function createSession(env: Env, userId: number): Promise<string> {
+  const id = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  await env.DB.prepare(
+    `INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)`
+  ).bind(id, userId, expiresAt).run();
+  return id;
+}
+
+export async function getSessionUser(env: Env, sessionId: string): Promise<ClientUserWithCompany | null> {
+  return env.DB.prepare(`
+    SELECT u.id, u.email, u.name, u.company_id, u.role, u.created_at,
+           c.name AS company_name, c.slug AS company_slug, c.setup_completed
+    FROM sessions s
+    JOIN users u ON s.user_id = u.id
+    JOIN companies c ON u.company_id = c.id
+    WHERE s.id = ? AND s.expires_at > datetime('now')
+  `).bind(sessionId).first<ClientUserWithCompany>();
+}
+
+export async function deleteSession(env: Env, sessionId: string): Promise<void> {
+  await env.DB.prepare(`DELETE FROM sessions WHERE id = ?`).bind(sessionId).run();
+}
+
+// ── Public Webchat ─────────────────────────────────────────────────────────
+
+export async function getAgentProfileBySlug(env: Env, slug: string): Promise<AgentProfile | null> {
+  const rows = await env.DB.prepare(
+    `SELECT
+       a.id          AS agent_id,
+       a.company_id,
+       c.name        AS company_name,
+       a.role_prompt,
+       a.model_id,
+       s.name        AS skill_name,
+       s.description AS skill_description,
+       s.schema_json
+     FROM agents a
+     JOIN companies c ON a.company_id = c.id
+     LEFT JOIN agent_skills ak ON a.id = ak.agent_id
+     LEFT JOIN skills s ON ak.skill_id = s.id
+     WHERE c.slug = ? AND a.is_active = 1
+     ORDER BY a.id ASC`
+  )
+    .bind(slug)
+    .all<{
+      agent_id: number;
+      company_id: number;
+      company_name: string;
+      role_prompt: string;
+      model_id: string;
+      skill_name: string | null;
+      skill_description: string | null;
+      schema_json: string | null;
+    }>();
+
+  if (!rows.results || rows.results.length === 0) return null;
+
+  const first = rows.results[0];
+  const skills = rows.results
+    .filter((r) => r.skill_name !== null)
+    .map((r) => ({
+      name: r.skill_name!,
+      description: r.skill_description!,
+      schema: r.schema_json ? JSON.parse(r.schema_json) : null,
+    }));
+
+  return {
+    agent_id: first.agent_id,
+    company_id: first.company_id,
+    company_name: first.company_name,
+    role_prompt: first.role_prompt,
+    model_id: first.model_id,
+    skills,
+  };
+}
+
+export interface PublicChatMessage {
+  role: string;
+  content: string;
+  created_at: string;
+}
+
+export async function saveChatMessage(
+  env: Env,
+  sessionId: string,
+  companyId: number,
+  agentId: number,
+  role: string,
+  content: string
+): Promise<void> {
+  await env.DB.prepare(
+    `INSERT INTO chat_messages (session_id, company_id, agent_id, role, content) VALUES (?, ?, ?, ?, ?)`
+  ).bind(sessionId, companyId, agentId, role, content).run();
+}
+
+export async function getChatHistory(
+  env: Env,
+  sessionId: string,
+  limit = 20
+): Promise<PublicChatMessage[]> {
+  const res = await env.DB.prepare(
+    `SELECT role, content, created_at FROM chat_messages
+     WHERE session_id = ?
+     ORDER BY created_at DESC LIMIT ?`
+  ).bind(sessionId, limit).all<PublicChatMessage>();
+  return (res.results ?? []).reverse();
+}
+
+export async function countRecentMessages(
+  env: Env,
+  sessionId: string,
+  sinceMinutes: number
+): Promise<number> {
+  const row = await env.DB.prepare(
+    `SELECT COUNT(*) AS cnt FROM chat_messages
+     WHERE session_id = ? AND role = 'user'
+       AND created_at > datetime('now', ? || ' minutes')`
+  ).bind(sessionId, `-${sinceMinutes}`).first<{ cnt: number }>();
+  return row?.cnt ?? 0;
+}
+
+// ── Telegram Multi-tenant Configs ─────────────────────────────────────────
+
+export interface TelegramConfig {
+  id: number;
+  company_id: number;
+  bot_token: string;
+  bot_username: string | null;
+  webhook_secret: string;
+  owner_chat_id: string | null;
+  is_active: number;
+  created_at: string;
+}
+
+export async function getTelegramConfig(
+  env: Env,
+  companyId: number
+): Promise<TelegramConfig | null> {
+  const result = await env.DB.prepare(
+    `SELECT * FROM telegram_configs WHERE company_id = ? AND is_active = 1`
+  ).bind(companyId).first<TelegramConfig>();
+  return result ?? null;
+}
+
+export async function getTelegramConfigBySlug(
+  env: Env,
+  slug: string
+): Promise<(TelegramConfig & { company_slug: string }) | null> {
+  const result = await env.DB.prepare(
+    `SELECT tc.*, c.slug AS company_slug
+     FROM telegram_configs tc
+     JOIN companies c ON c.id = tc.company_id
+     WHERE c.slug = ? AND tc.is_active = 1`
+  ).bind(slug).first<TelegramConfig & { company_slug: string }>();
+  return result ?? null;
+}
+
+export async function saveTelegramConfig(
+  env: Env,
+  companyId: number,
+  botToken: string,
+  botUsername: string,
+  webhookSecret: string
+): Promise<void> {
+  await env.DB.prepare(
+    `INSERT INTO telegram_configs (company_id, bot_token, bot_username, webhook_secret)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(company_id) DO UPDATE SET
+       bot_token = excluded.bot_token,
+       bot_username = excluded.bot_username,
+       webhook_secret = excluded.webhook_secret,
+       is_active = 1`
+  ).bind(companyId, botToken, botUsername, webhookSecret).run();
+}
+
+export async function deactivateTelegramConfig(
+  env: Env,
+  companyId: number
+): Promise<void> {
+  await env.DB.prepare(
+    `UPDATE telegram_configs SET is_active = 0 WHERE company_id = ?`
+  ).bind(companyId).run();
+}
+
+export async function setTelegramOwnerChatId(
+  env: Env,
+  companyId: number,
+  chatId: string
+): Promise<void> {
+  await env.DB.prepare(
+    `UPDATE telegram_configs SET owner_chat_id = ? WHERE company_id = ? AND is_active = 1`
+  ).bind(chatId, companyId).run();
 }
