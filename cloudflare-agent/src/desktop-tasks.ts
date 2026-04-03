@@ -119,7 +119,7 @@ export async function completeDesktopTask(
   companyId: number,
   result: Record<string, unknown>
 ): Promise<void> {
-  const screenshotB64 = (result.screenshot as string | undefined) ?? null;
+  const screenshotB64 = (result.screenshot as string | undefined) ?? (result.screenshot_b64 as string | undefined) ?? null;
   await env.DB.prepare(
     `UPDATE desktop_tasks
      SET status = 'completed', result = ?, screenshot_b64 = ?, completed_at = CURRENT_TIMESTAMP
@@ -169,7 +169,7 @@ async function notifyTaskComplete(
   const config = JSON.parse(task.config) as { url?: string };
 
   // Si hay screenshot, enviarlo como foto
-  const screenshotB64 = result.screenshot as string | undefined;
+  const screenshotB64 = (result.screenshot as string | undefined) ?? (result.screenshot_b64 as string | undefined);
   if (screenshotB64) {
     // Convertir base64 a bytes y enviar como multipart/form-data
     const bytes = base64ToUint8Array(screenshotB64);
