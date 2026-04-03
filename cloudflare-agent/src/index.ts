@@ -24,6 +24,7 @@ import { handleGoogleAuthStart, handleGoogleAuthCallback, handleGoogleDisconnect
 import { appendHistory, clearHistory, getHistory } from "./kv";
 import { sendPushNotification } from "./smartpasses";
 import { registerWebhook, sendMessage } from "./telegram";
+import { saveIntegration } from "./integrations-hub";
 import type { Env, TelegramUpdate } from "./types";
 
 // ── CORS ──────────────────────────────────────────────────────────────────
@@ -1308,6 +1309,45 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
       updated_at: r.updated_at,
     }));
     return corsResponse(JSON.stringify({ integrations }), 200, undefined, request);
+  }
+
+  // POST /api/settings/integrations — conectar una integración
+  if (request.method === "POST" && pathname === "/api/settings/integrations") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    let body: { provider?: string; access_token?: string; extra_data?: Record<string, unknown> };
+    try { body = await request.json(); } catch { return corsResponse(JSON.stringify({ error: "JSON inválido" }), 400, undefined, request); }
+
+    const VALID_PROVIDERS = new Set(["slack", "notion", "hubspot", "shopify", "make"]);
+    if (!body.provider || !VALID_PROVIDERS.has(body.provider)) {
+      return corsResponse(JSON.stringify({ error: "Provider inválido. Válidos: slack, notion, hubspot, shopify, make" }), 400, undefined, request);
+    }
+    if (!body.access_token?.trim()) {
+      return corsResponse(JSON.stringify({ error: "access_token requerido" }), 400, undefined, request);
+    }
+
+    await saveIntegration(env, user.company_id, body.provider, body.access_token.trim(), body.extra_data ?? {});
+    return corsResponse(JSON.stringify({ ok: true, provider: body.provider }), 200, undefined, request);
+  }
+
+  // DELETE /api/settings/integrations — desconectar una integración
+  if (request.method === "DELETE" && pathname === "/api/settings/integrations") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    let body: { provider?: string };
+    try { body = await request.json(); } catch { return corsResponse(JSON.stringify({ error: "JSON inválido" }), 400, undefined, request); }
+
+    const VALID_PROVIDERS = new Set(["slack", "notion", "hubspot", "shopify", "make"]);
+    if (!body.provider || !VALID_PROVIDERS.has(body.provider)) {
+      return corsResponse(JSON.stringify({ error: "Provider inválido" }), 400, undefined, request);
+    }
+
+    await env.DB.prepare(
+      `UPDATE integrations SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE company_id = ? AND provider = ?`
+    ).bind(user.company_id, body.provider).run();
+    return corsResponse(JSON.stringify({ ok: true, provider: body.provider }), 200, undefined, request);
   }
 
   // ── Personal Tasks ─────────────────────────────────────────────────────

@@ -7,6 +7,62 @@ import { clearAuth, getUser, authHeaders } from "@/shared/hooks/useAuth";
 
 const WORKER_URL = "https://ailyn-agent.novacodepro.workers.dev";
 
+interface IntegrationStatus {
+  provider: string;
+  connected: boolean;
+  updated_at: string | null;
+}
+
+const INTEGRATIONS_CONFIG = [
+  {
+    provider: "slack",
+    name: "Slack",
+    description: "Enviar mensajes a canales de Slack desde el asistente.",
+    color: "bg-[#4A154B]",
+    fields: [
+      { key: "access_token", label: "Bot Token", placeholder: "xoxb-xxxxxxxxxxxx-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx", type: "password" as const },
+    ],
+  },
+  {
+    provider: "notion",
+    name: "Notion",
+    description: "Crear paginas y buscar en tu workspace de Notion.",
+    color: "bg-white/10",
+    fields: [
+      { key: "access_token", label: "Integration Token", placeholder: "ntn_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", type: "password" as const },
+      { key: "parent_id", label: "Parent Page/Database ID", placeholder: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", type: "text" as const, extra: true },
+    ],
+  },
+  {
+    provider: "hubspot",
+    name: "HubSpot",
+    description: "Crear contactos, buscar clientes y gestionar deals.",
+    color: "bg-[#FF7A59]/20",
+    fields: [
+      { key: "access_token", label: "Access Token", placeholder: "pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", type: "password" as const },
+    ],
+  },
+  {
+    provider: "shopify",
+    name: "Shopify",
+    description: "Consultar pedidos y productos de tu tienda.",
+    color: "bg-[#96BF48]/20",
+    fields: [
+      { key: "access_token", label: "Admin API Access Token", placeholder: "shpat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", type: "password" as const },
+      { key: "shop", label: "Shop Name", placeholder: "mi-tienda (sin .myshopify.com)", type: "text" as const, extra: true },
+    ],
+  },
+  {
+    provider: "make",
+    name: "Make.com",
+    description: "Disparar escenarios y automatizaciones desde el chat.",
+    color: "bg-[#6D00CC]/20",
+    fields: [
+      { key: "access_token", label: "Webhook URL", placeholder: "https://hook.us1.make.com/xxxxxxxxxxxxxxxxxxxxxxxxx", type: "url" as const },
+    ],
+  },
+] as const;
+
 export default function SettingsPage() {
   const router = useRouter();
   const user = getUser();
@@ -17,6 +73,12 @@ export default function SettingsPage() {
   const [tgToken, setTgToken] = useState("");
   const [tgLoading, setTgLoading] = useState(false);
   const [tgError, setTgError] = useState("");
+
+  // ── Integrations state ──────────────────────────────────────────────────
+  const [integrations, setIntegrations] = useState<IntegrationStatus[]>([]);
+  const [intLoading, setIntLoading] = useState<string | null>(null);
+  const [intError, setIntError] = useState<string | null>(null);
+  const [intForms, setIntForms] = useState<Record<string, Record<string, string>>>({});
 
   // ── WhatsApp state ─────────────────────────────────────────────────────
   const [waConnected, setWaConnected] = useState<boolean | null>(null);
@@ -50,6 +112,14 @@ export default function SettingsPage() {
         setWaPhoneId(data.phone_number_id ?? null);
       })
       .catch(() => setWaConnected(false));
+
+    // Integrations status
+    fetch(`${WORKER_URL}/api/settings/integrations`, { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((data: { integrations?: IntegrationStatus[] }) => {
+        setIntegrations(data.integrations ?? []);
+      })
+      .catch(() => {});
   }, []);
 
   async function handleTelegramConnect(e: React.FormEvent) {
@@ -141,6 +211,66 @@ export default function SettingsPage() {
     } finally {
       setWaLoading(false);
     }
+  }
+
+  async function handleIntegrationConnect(provider: string) {
+    const form = intForms[provider] ?? {};
+    const config = INTEGRATIONS_CONFIG.find((c) => c.provider === provider);
+    if (!config) return;
+
+    const accessToken = form["access_token"]?.trim();
+    if (!accessToken) { setIntError("Token/URL requerido"); return; }
+
+    const extraData: Record<string, unknown> = {};
+    for (const field of config.fields) {
+      if ("extra" in field && field.extra && form[field.key]?.trim()) {
+        extraData[field.key] = form[field.key].trim();
+      }
+    }
+
+    setIntLoading(provider);
+    setIntError(null);
+    try {
+      const res = await fetch(`${WORKER_URL}/api/settings/integrations`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ provider, access_token: accessToken, extra_data: extraData }),
+      });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (!res.ok) { setIntError(data.error ?? "Error al conectar"); return; }
+      setIntegrations((prev) => {
+        const filtered = prev.filter((i) => i.provider !== provider);
+        return [...filtered, { provider, connected: true, updated_at: new Date().toISOString() }];
+      });
+      setIntForms((prev) => ({ ...prev, [provider]: {} }));
+    } catch {
+      setIntError("No se pudo conectar al servidor.");
+    } finally {
+      setIntLoading(null);
+    }
+  }
+
+  async function handleIntegrationDisconnect(provider: string) {
+    const config = INTEGRATIONS_CONFIG.find((c) => c.provider === provider);
+    if (!confirm(`Desconectar ${config?.name ?? provider}?`)) return;
+    setIntLoading(provider);
+    setIntError(null);
+    try {
+      await fetch(`${WORKER_URL}/api/settings/integrations`, {
+        method: "DELETE",
+        headers: authHeaders(),
+        body: JSON.stringify({ provider }),
+      });
+      setIntegrations((prev) => prev.map((i) => i.provider === provider ? { ...i, connected: false } : i));
+    } catch {
+      setIntError("No se pudo desconectar.");
+    } finally {
+      setIntLoading(null);
+    }
+  }
+
+  function updateIntForm(provider: string, key: string, value: string) {
+    setIntForms((prev) => ({ ...prev, [provider]: { ...(prev[provider] ?? {}), [key]: value } }));
   }
 
   function handleLogout() {
@@ -323,6 +453,67 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
+
+        {/* ── Integraciones ─────────────────────────────────────────── */}
+        <h2 className="text-lg font-bold text-white pt-2">Integraciones</h2>
+        {intError && <p className="text-red-400 text-xs">{intError}</p>}
+
+        {INTEGRATIONS_CONFIG.map((config) => {
+          const status = integrations.find((i) => i.provider === config.provider);
+          const isConnected = status?.connected ?? false;
+          const loading = intLoading === config.provider;
+          const form = intForms[config.provider] ?? {};
+
+          return (
+            <div key={config.provider} className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-400" : "bg-gray-600"}`} />
+                  <h2 className="text-sm font-medium text-white">{config.name}</h2>
+                </div>
+                {isConnected && (
+                  <span className="text-xs text-green-400">Conectado</span>
+                )}
+              </div>
+
+              <p className="text-xs text-gray-400">{config.description}</p>
+
+              {!isConnected && (
+                <div className="space-y-2">
+                  {config.fields.map((field) => (
+                    <input
+                      key={field.key}
+                      type={field.type === "password" ? "password" : "text"}
+                      value={form[field.key] ?? ""}
+                      onChange={(e) => updateIntForm(config.provider, field.key, e.target.value)}
+                      placeholder={field.label}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 transition-colors font-mono"
+                    />
+                  ))}
+                  <button
+                    onClick={() => handleIntegrationConnect(config.provider)}
+                    disabled={loading || !form["access_token"]?.trim()}
+                    className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+                  >
+                    {loading ? "Conectando..." : `Conectar ${config.name}`}
+                  </button>
+                </div>
+              )}
+
+              {isConnected && (
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => handleIntegrationDisconnect(config.provider)}
+                    disabled={loading}
+                    className="text-xs text-red-500 hover:text-red-300 transition-colors disabled:opacity-50"
+                  >
+                    {loading ? "..." : "Desconectar"}
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {/* Infraestructura */}
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-2">
