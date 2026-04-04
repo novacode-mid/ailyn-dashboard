@@ -84,7 +84,7 @@ export function detectForcedModel(message: string): ForcedModel | null {
 
 // ── Pre-detección por keywords (antes del LLM, más confiable) ─────────────
 
-interface McpSkillInfo { skill_name: string; mcp_tool_name: string; description: string }
+interface McpSkillInfo { skill_name: string; mcp_tool_name: string; description: string; synonyms?: string }
 
 function preDetectTools(message: string, connectedProviders: string[] = [], mcpSkills: McpSkillInfo[] = []): { tools: AvailableTool[] } {
   const lower = message.toLowerCase();
@@ -199,14 +199,35 @@ function preDetectTools(message: string, connectedProviders: string[] = [], mcpS
     }
   }
 
-  // ── MCP Skills: detectar por keywords del catálogo de mcpSkills ──
-  // mcpSkills se pasa desde route() que lo carga de D1 una sola vez
+  // ── MCP Skills: detectar por keywords de descripcion + synonyms ──
   for (const skill of mcpSkills) {
-    const skillWords = [
+    // Build keywords from: tool name, description words, and AI-generated synonyms
+    const keywords: string[] = [
       skill.mcp_tool_name.replace(/_/g, " "),
       ...skill.description.toLowerCase().split(/\s+/).filter(w => w.length > 3),
     ];
-    if (skillWords.some(kw => lower.includes(kw))) {
+
+    // Parse synonyms JSON and extract individual words/phrases
+    if (skill.synonyms) {
+      try {
+        const syns = JSON.parse(skill.synonyms) as string[];
+        for (const syn of syns) {
+          // Add the full phrase (lowercased, cleaned)
+          const clean = syn.replace(/^[\d.*\-\s]+/, "").replace(/[¿?¡!]/g, "").trim().toLowerCase();
+          if (clean.length > 3) keywords.push(clean);
+          // Also add individual significant words from the phrase
+          for (const word of clean.split(/\s+/).filter(w => w.length > 3)) {
+            keywords.push(word);
+          }
+        }
+      } catch { /* invalid JSON */ }
+    }
+
+    // Deduplicate
+    const uniqueKeywords = [...new Set(keywords)];
+
+    // Match: any keyword found in the user message
+    if (uniqueKeywords.some(kw => lower.includes(kw))) {
       tools.push(skill.skill_name);
     }
   }
@@ -386,7 +407,7 @@ export async function route(
   if (companyId) {
     try {
       const rows = await env.DB.prepare(
-        `SELECT skill_name, mcp_tool_name, description FROM mcp_skills WHERE company_id = ? AND is_active = 1 LIMIT 30`
+        `SELECT skill_name, mcp_tool_name, description, synonyms FROM mcp_skills WHERE company_id = ? AND is_active = 1 LIMIT 30`
       ).bind(companyId).all<McpSkillInfo>();
       mcpSkills = rows.results ?? [];
     } catch { /* ignore */ }

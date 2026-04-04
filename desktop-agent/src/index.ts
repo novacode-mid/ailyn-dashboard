@@ -79,11 +79,24 @@ switch (command) {
   case "config":
     console.log(JSON.stringify(loadConfig(), null, 2));
     break;
+  case "bridge": {
+    const mcpCommand = process.argv.slice(3).join(" ");
+    if (!mcpCommand) {
+      console.log("  Uso: openclaw bridge <comando-mcp>");
+      console.log("  Ej:  openclaw bridge npx @modelcontextprotocol/server-github");
+      process.exit(1);
+    }
+    import("./mcp-bridge").then(({ startBridge }) => {
+      startBridge(mcpCommand, 4569);
+    });
+    break;
+  }
   default:
     console.log(BANNER);
     console.log("  Comandos:");
     console.log("    openclaw login    — Configurar token y URL");
     console.log("    openclaw start    — Iniciar el agente");
+    console.log("    openclaw bridge   — Exponer MCP stdio como HTTP");
     console.log("    openclaw config   — Ver configuración actual");
     console.log("");
     break;

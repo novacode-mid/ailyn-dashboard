@@ -3268,6 +3268,105 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
     return corsResponse(JSON.stringify({ messages: rows.results ?? [] }), 200, undefined, request);
   }
 
+  // ── Skill Marketplace ───────────────────────────────────────────────────
+
+  // GET /api/marketplace — listar skills publicos
+  if (request.method === "GET" && pathname === "/api/marketplace") {
+    const category = new URL(request.url).searchParams.get("category");
+    const query = category
+      ? `SELECT ms.*, c.name as publisher_name FROM marketplace_skills ms JOIN companies c ON c.id = ms.publisher_company_id WHERE ms.is_public = 1 AND ms.is_approved = 1 AND ms.category = ? ORDER BY ms.installs DESC LIMIT 50`
+      : `SELECT ms.*, c.name as publisher_name FROM marketplace_skills ms JOIN companies c ON c.id = ms.publisher_company_id WHERE ms.is_public = 1 AND ms.is_approved = 1 ORDER BY ms.installs DESC LIMIT 50`;
+    const params = category ? [category] : [];
+    const rows = await env.DB.prepare(query).bind(...params).all();
+    return corsResponse(JSON.stringify({ skills: rows.results ?? [] }), 200, undefined, request);
+  }
+
+  // POST /api/marketplace/publish — publicar un MCP skill al marketplace
+  if (request.method === "POST" && pathname === "/api/marketplace/publish") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    let body: { skill_id?: number; display_name?: string; price_cents?: number; category?: string; icon?: string };
+    try { body = await request.json(); } catch { return corsResponse(JSON.stringify({ error: "JSON inválido" }), 400, undefined, request); }
+
+    if (!body.skill_id) return corsResponse(JSON.stringify({ error: "skill_id requerido" }), 400, undefined, request);
+
+    // Verificar que el skill pertenece a la empresa
+    const skill = await env.DB.prepare(
+      `SELECT skill_name, description, parameters_schema, synonyms FROM mcp_skills WHERE id = ? AND company_id = ?`
+    ).bind(body.skill_id, user.company_id).first<{ skill_name: string; description: string; parameters_schema: string; synonyms: string }>();
+
+    if (!skill) return corsResponse(JSON.stringify({ error: "Skill no encontrado" }), 404, undefined, request);
+
+    const r = await env.DB.prepare(
+      `INSERT INTO marketplace_skills (publisher_company_id, skill_name, display_name, description, category, icon, price_cents, parameters_schema, synonyms, is_approved)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1) RETURNING id`
+    ).bind(
+      user.company_id, skill.skill_name,
+      body.display_name ?? skill.skill_name,
+      skill.description,
+      body.category ?? "general",
+      body.icon ?? "⚡",
+      body.price_cents ?? 0,
+      skill.parameters_schema, skill.synonyms
+    ).first<{ id: number }>();
+
+    return corsResponse(JSON.stringify({ ok: true, marketplace_id: r?.id }), 201, undefined, request);
+  }
+
+  // POST /api/marketplace/install — instalar un skill del marketplace
+  if (request.method === "POST" && pathname === "/api/marketplace/install") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    let body: { marketplace_skill_id?: number };
+    try { body = await request.json(); } catch { return corsResponse(JSON.stringify({ error: "JSON inválido" }), 400, undefined, request); }
+
+    if (!body.marketplace_skill_id) return corsResponse(JSON.stringify({ error: "marketplace_skill_id requerido" }), 400, undefined, request);
+
+    const mSkill = await env.DB.prepare(
+      `SELECT * FROM marketplace_skills WHERE id = ? AND is_public = 1`
+    ).bind(body.marketplace_skill_id).first<{
+      id: number; skill_name: string; description: string; parameters_schema: string;
+      synonyms: string; mcp_server_url: string | null; publisher_company_id: number;
+    }>();
+
+    if (!mSkill) return corsResponse(JSON.stringify({ error: "Skill no encontrado" }), 404, undefined, request);
+
+    // Crear el skill en la empresa del usuario (si tiene MCP server URL, usarlo)
+    if (mSkill.mcp_server_url) {
+      // Skill con MCP server — escanear y crear
+      await scanMcpServer(env, user.company_id, mSkill.mcp_server_url, `Marketplace: ${mSkill.skill_name}`, "streamable-http");
+    } else {
+      // Skill standalone — copiar directamente a mcp_skills
+      await env.DB.prepare(
+        `INSERT OR IGNORE INTO mcp_skills (company_id, server_id, mcp_tool_name, skill_name, description, parameters_schema, synonyms, version_hash)
+         VALUES (?, 0, ?, ?, ?, ?, ?, 'marketplace')`
+      ).bind(user.company_id, mSkill.skill_name, mSkill.skill_name, mSkill.description, mSkill.parameters_schema, mSkill.synonyms).run();
+
+      // Index in Vectorize
+      try {
+        const embText = `${mSkill.skill_name}: ${mSkill.description}`;
+        const embRes = await env.AI.run("@cf/baai/bge-base-en-v1.5", { text: [embText] }) as { data: number[][] };
+        await env.KNOWLEDGE_BASE.upsert([{
+          id: `mcp-skill-${user.company_id}-${mSkill.skill_name}`,
+          values: embRes.data[0],
+          metadata: { skill_name: mSkill.skill_name, description: mSkill.description, company_id: String(user.company_id), type: "mcp_skill" },
+        }]);
+      } catch { /* */ }
+    }
+
+    // Record install
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO marketplace_installs (marketplace_skill_id, company_id) VALUES (?, ?)`
+    ).bind(mSkill.id, user.company_id).run();
+    await env.DB.prepare(
+      `UPDATE marketplace_skills SET installs = installs + 1 WHERE id = ?`
+    ).bind(mSkill.id).run();
+
+    return corsResponse(JSON.stringify({ ok: true }), 200, undefined, request);
+  }
+
   // ── MCP Servers ─────────────────────────────────────────────────────────
 
   // POST /api/settings/mcp/connect — conectar un servidor MCP
