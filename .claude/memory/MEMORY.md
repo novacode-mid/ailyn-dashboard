@@ -7,7 +7,7 @@
 (vacio)
 
 ## project/ — Proyectos y decisiones activas
-(vacio)
+- [Dynamic Workers Roadmap](project/dynamic-workers-roadmap.md) — Esperar beta, migrar Code Mode a TypeScript generado cuando estable
 
 ## feedback/ — Correcciones y preferencias
 (vacio)
