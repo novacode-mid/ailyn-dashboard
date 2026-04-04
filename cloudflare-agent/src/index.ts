@@ -27,6 +27,7 @@ import { registerWebhook, sendMessage } from "./telegram";
 import { saveIntegration } from "./integrations-hub";
 import { createCheckout } from "./billing";
 import { indexSkills } from "./skill-layer";
+import { scanMcpServer, rescanAllMcpServers, rescanAllMcpServersCron } from "./mcp-scanner";
 export { DesktopTunnel } from "./desktop-tunnel";
 import type { Env, TelegramUpdate } from "./types";
 
@@ -3267,6 +3268,78 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
     return corsResponse(JSON.stringify({ messages: rows.results ?? [] }), 200, undefined, request);
   }
 
+  // ── MCP Servers ─────────────────────────────────────────────────────────
+
+  // POST /api/settings/mcp/connect — conectar un servidor MCP
+  if (request.method === "POST" && pathname === "/api/settings/mcp/connect") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    let body: { url?: string; name?: string; transport_type?: string };
+    try { body = await request.json(); } catch { return corsResponse(JSON.stringify({ error: "JSON inválido" }), 400, undefined, request); }
+
+    if (!body.url?.trim()) return corsResponse(JSON.stringify({ error: "URL requerida" }), 400, undefined, request);
+
+    try {
+      const result = await scanMcpServer(
+        env, user.company_id,
+        body.url.trim(),
+        body.name?.trim() ?? body.url.trim(),
+        body.transport_type ?? "streamable-http"
+      );
+      return corsResponse(JSON.stringify({ ok: true, ...result }), 200, undefined, request);
+    } catch (err) {
+      return corsResponse(JSON.stringify({ error: `Error al escanear MCP: ${String(err)}` }), 500, undefined, request);
+    }
+  }
+
+  // DELETE /api/settings/mcp/disconnect — desconectar servidor MCP
+  if (request.method === "DELETE" && pathname === "/api/settings/mcp/disconnect") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    let body: { server_id?: number };
+    try { body = await request.json(); } catch { return corsResponse(JSON.stringify({ error: "JSON inválido" }), 400, undefined, request); }
+
+    if (!body.server_id) return corsResponse(JSON.stringify({ error: "server_id requerido" }), 400, undefined, request);
+
+    await env.DB.prepare(`UPDATE mcp_servers SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND company_id = ?`)
+      .bind(body.server_id, user.company_id).run();
+    await env.DB.prepare(`UPDATE mcp_skills SET is_active = 0, deprecated_at = CURRENT_TIMESTAMP WHERE server_id = ? AND company_id = ?`)
+      .bind(body.server_id, user.company_id).run();
+
+    return corsResponse(JSON.stringify({ ok: true }), 200, undefined, request);
+  }
+
+  // GET /api/settings/mcp — lista MCPs conectados con sus skills
+  if (request.method === "GET" && pathname === "/api/settings/mcp") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    const servers = await env.DB.prepare(
+      `SELECT id, url, name, transport_type, skills_count, last_scan_at, is_active FROM mcp_servers WHERE company_id = ? ORDER BY created_at DESC`
+    ).bind(user.company_id).all();
+
+    const skills = await env.DB.prepare(
+      `SELECT id, server_id, skill_name, mcp_tool_name, description, is_active, deprecated_at FROM mcp_skills WHERE company_id = ? ORDER BY server_id, skill_name`
+    ).bind(user.company_id).all();
+
+    return corsResponse(JSON.stringify({ servers: servers.results ?? [], skills: skills.results ?? [] }), 200, undefined, request);
+  }
+
+  // POST /api/settings/mcp/rescan — re-escanear todos los MCPs
+  if (request.method === "POST" && pathname === "/api/settings/mcp/rescan") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    try {
+      const results = await rescanAllMcpServers(env, user.company_id);
+      return corsResponse(JSON.stringify({ ok: true, results }), 200, undefined, request);
+    } catch (err) {
+      return corsResponse(JSON.stringify({ error: String(err) }), 500, undefined, request);
+    }
+  }
+
   // ── Desktop Tunnel (WebSocket) ──────────────────────────────────────────
   // GET /api/desktop/tunnel — WebSocket upgrade for Desktop Agent
   if (pathname === "/api/desktop/tunnel" && request.headers.get("Upgrade") === "websocket") {
@@ -4146,6 +4219,10 @@ export default {
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     if (event.cron === "0 14 * * *") {
       ctx.waitUntil(handleMorningReport(env));
+      // Weekly MCP rescan (Mondays at 14:00)
+      if (new Date().getDay() === 1) {
+        ctx.waitUntil(rescanAllMcpServersCron(env));
+      }
     } else {
       ctx.waitUntil(handleScheduled(env));
     }

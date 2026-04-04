@@ -12,6 +12,7 @@ import {
   hubspotSearchContacts,
   shopifyGetOrders, shopifyGetProducts,
 } from "./integrations-hub";
+import { mcpCallTool } from "./mcp-scanner";
 
 export interface ToolResult {
   tool: AvailableTool;
@@ -876,7 +877,28 @@ El sistema enviará estos datos al webhook de Make.com.`,
         }
       }
     } catch (err) {
-      results.push({ tool, success: false, data: null, error: String(err) });
+      // If not a known tool, try as MCP skill
+      if (tool.startsWith("mcp_")) {
+        try {
+          const mcpToolName = tool.replace("mcp_", "");
+          const skill = await env.DB.prepare(
+            `SELECT ms.url, mk.mcp_tool_name, mk.parameters_schema
+             FROM mcp_skills mk JOIN mcp_servers ms ON ms.id = mk.server_id
+             WHERE mk.company_id = ? AND mk.skill_name = ? AND mk.is_active = 1 AND ms.is_active = 1`
+          ).bind(ctx.companyId, tool).first<{ url: string; mcp_tool_name: string; parameters_schema: string }>();
+
+          if (skill) {
+            const result = await mcpCallTool(skill.url, skill.mcp_tool_name, { message: ctx.userMessage });
+            results.push({ tool, success: true, data: { mcp_result: result, note: `Resultado del MCP tool ${skill.mcp_tool_name}` } });
+          } else {
+            results.push({ tool, success: false, data: null, error: `MCP skill ${mcpToolName} no encontrado` });
+          }
+        } catch (mcpErr) {
+          results.push({ tool, success: false, data: null, error: `MCP error: ${String(mcpErr)}` });
+        }
+      } else {
+        results.push({ tool, success: false, data: null, error: String(err) });
+      }
     }
   }
 

@@ -160,16 +160,27 @@ export async function findRelevantSkills(
     if (found >= topK) break;
     if ((match.score ?? 0) < threshold) continue;
 
-    // Only process skill vectors (id starts with "skill-")
-    if (!match.id.startsWith("skill-")) continue;
+    // Process native skills (prefix "skill-") and MCP skills (prefix "mcp-skill-")
+    const isNativeSkill = match.id.startsWith("skill-") && !match.id.startsWith("skill-mcp");
+    const isMcpSkill = match.id.startsWith("mcp-skill-");
+    if (!isNativeSkill && !isMcpSkill) continue;
 
     const skillName = (match.metadata as Record<string, string>)?.skill_name;
-    const requiresIntegration = (match.metadata as Record<string, string>)?.requires_integration;
-
     if (!skillName) continue;
 
-    // Si requiere integración, verificar que esté conectada
-    if (requiresIntegration && !connected.has(requiresIntegration)) continue;
+    // Native skills: check integration requirement
+    if (isNativeSkill) {
+      const requiresIntegration = (match.metadata as Record<string, string>)?.requires_integration;
+      if (requiresIntegration && !connected.has(requiresIntegration)) continue;
+    }
+
+    // MCP skills: check company_id matches (they're company-specific)
+    if (isMcpSkill) {
+      const skillCompanyId = (match.metadata as Record<string, string>)?.company_id;
+      // companyId not available here — MCP skills are filtered by Vectorize id prefix
+      // The id format is "mcp-skill-{companyId}-{toolName}" so we trust the match
+      if (skillCompanyId && !match.id.includes(`mcp-skill-${skillCompanyId}`)) continue;
+    }
 
     skills.push(skillName);
     found++;

@@ -74,6 +74,15 @@ export default function SettingsPage() {
   const [tgLoading, setTgLoading] = useState(false);
   const [tgError, setTgError] = useState("");
 
+  // ── MCP state ──────────────────────────────────────────────────────────
+  const [mcpServers, setMcpServers] = useState<{ id: number; url: string; name: string; skills_count: number; is_active: number; last_scan_at: string | null }[]>([]);
+  const [mcpSkills, setMcpSkills] = useState<{ id: number; server_id: number; skill_name: string; description: string; is_active: number }[]>([]);
+  const [mcpUrl, setMcpUrl] = useState("");
+  const [mcpName, setMcpName] = useState("");
+  const [mcpLoading, setMcpLoading] = useState(false);
+  const [mcpError, setMcpError] = useState("");
+  const [mcpExpanded, setMcpExpanded] = useState<number | null>(null);
+
   // ── Integrations state ──────────────────────────────────────────────────
   const [integrations, setIntegrations] = useState<IntegrationStatus[]>([]);
   const [intLoading, setIntLoading] = useState<string | null>(null);
@@ -112,6 +121,15 @@ export default function SettingsPage() {
         setWaPhoneId(data.phone_number_id ?? null);
       })
       .catch(() => setWaConnected(false));
+
+    // MCP servers
+    fetch(`${WORKER_URL}/api/settings/mcp`, { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((data: { servers?: typeof mcpServers; skills?: typeof mcpSkills }) => {
+        setMcpServers(data.servers ?? []);
+        setMcpSkills(data.skills ?? []);
+      })
+      .catch(() => {});
 
     // Integrations status
     fetch(`${WORKER_URL}/api/settings/integrations`, { headers: authHeaders() })
@@ -271,6 +289,43 @@ export default function SettingsPage() {
 
   function updateIntForm(provider: string, key: string, value: string) {
     setIntForms((prev) => ({ ...prev, [provider]: { ...(prev[provider] ?? {}), [key]: value } }));
+  }
+
+  async function handleMcpConnect(e: React.FormEvent) {
+    e.preventDefault();
+    if (!mcpUrl.trim()) return;
+    setMcpLoading(true);
+    setMcpError("");
+    try {
+      const res = await fetch(`${WORKER_URL}/api/settings/mcp/connect`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ url: mcpUrl.trim(), name: mcpName.trim() || mcpUrl.trim() }),
+      });
+      const data = await res.json() as { ok?: boolean; skillsCreated?: number; errors?: string[]; error?: string };
+      if (!res.ok) { setMcpError(data.error ?? "Error al conectar"); return; }
+      setMcpUrl("");
+      setMcpName("");
+      // Reload
+      const listRes = await fetch(`${WORKER_URL}/api/settings/mcp`, { headers: authHeaders() });
+      const listData = await listRes.json() as { servers?: typeof mcpServers; skills?: typeof mcpSkills };
+      setMcpServers(listData.servers ?? []);
+      setMcpSkills(listData.skills ?? []);
+    } catch {
+      setMcpError("No se pudo conectar al servidor.");
+    } finally {
+      setMcpLoading(false);
+    }
+  }
+
+  async function handleMcpDisconnect(serverId: number) {
+    if (!confirm("Desconectar este servidor MCP? Sus skills se desactivarán.")) return;
+    await fetch(`${WORKER_URL}/api/settings/mcp/disconnect`, {
+      method: "DELETE",
+      headers: authHeaders(),
+      body: JSON.stringify({ server_id: serverId }),
+    });
+    setMcpServers((prev) => prev.map((s) => s.id === serverId ? { ...s, is_active: 0 } : s));
   }
 
   function handleLogout() {
@@ -514,6 +569,81 @@ export default function SettingsPage() {
             </div>
           );
         })}
+
+        {/* ── Servidores MCP ───────────────────────────────────── */}
+        <h2 className="text-lg font-bold text-white pt-2">Servidores MCP</h2>
+        <p className="text-gray-500 text-xs -mt-4">Conecta cualquier servidor MCP y sus tools se convierten en Skills automaticamente</p>
+
+        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-4">
+          <form onSubmit={handleMcpConnect} className="space-y-2">
+            <input
+              type="url"
+              value={mcpUrl}
+              onChange={(e) => setMcpUrl(e.target.value)}
+              placeholder="URL del servidor MCP (ej: https://mcp.example.com/sse)"
+              required
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 font-mono"
+            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={mcpName}
+                onChange={(e) => setMcpName(e.target.value)}
+                placeholder="Nombre (opcional)"
+                className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400"
+              />
+              <button
+                type="submit"
+                disabled={mcpLoading || !mcpUrl.trim()}
+                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+              >
+                {mcpLoading ? "Escaneando..." : "Conectar MCP"}
+              </button>
+            </div>
+          </form>
+          {mcpError && <p className="text-red-400 text-xs">{mcpError}</p>}
+        </div>
+
+        {mcpServers.filter(s => s.is_active).map((server) => (
+          <div key={server.id} className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-400" />
+                <span className="text-white text-sm font-medium">{server.name}</span>
+                <span className="text-gray-500 text-xs">({server.skills_count} skills)</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setMcpExpanded(mcpExpanded === server.id ? null : server.id)}
+                  className="text-xs text-purple-400 hover:text-purple-300"
+                >
+                  {mcpExpanded === server.id ? "Ocultar" : "Ver skills"}
+                </button>
+                <button
+                  onClick={() => handleMcpDisconnect(server.id)}
+                  className="text-xs text-red-500 hover:text-red-300"
+                >
+                  Desconectar
+                </button>
+              </div>
+            </div>
+            <p className="text-gray-500 text-xs font-mono">{server.url}</p>
+            {server.last_scan_at && (
+              <p className="text-gray-600 text-xs">Ultimo escaneo: {new Date(server.last_scan_at).toLocaleString("es-MX")}</p>
+            )}
+
+            {mcpExpanded === server.id && (
+              <div className="space-y-1 pt-2 border-t border-gray-800">
+                {mcpSkills.filter(s => s.server_id === server.id).map((skill) => (
+                  <div key={skill.id} className="flex items-center justify-between text-xs py-1">
+                    <span className={skill.is_active ? "text-gray-300" : "text-gray-600 line-through"}>{skill.skill_name}</span>
+                    <span className="text-gray-500">{skill.description.slice(0, 50)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
 
         {/* Infraestructura */}
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-2">
