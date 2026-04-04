@@ -84,7 +84,9 @@ export function detectForcedModel(message: string): ForcedModel | null {
 
 // ── Pre-detección por keywords (antes del LLM, más confiable) ─────────────
 
-function preDetectTools(message: string, connectedProviders: string[] = []): { tools: AvailableTool[] } {
+interface McpSkillInfo { skill_name: string; mcp_tool_name: string; description: string }
+
+function preDetectTools(message: string, connectedProviders: string[] = [], mcpSkills: McpSkillInfo[] = []): { tools: AvailableTool[] } {
   const lower = message.toLowerCase();
   const tools: AvailableTool[] = [];
 
@@ -197,20 +199,15 @@ function preDetectTools(message: string, connectedProviders: string[] = []): { t
     }
   }
 
-  // ── MCP Skills: detectar por keywords de la descripción/sinónimos ──
-  // Se cargan de KV cache para no consultar D1 en cada mensaje
-  if (connectedProviders.length > 0 || tools.length === 0) {
-    // Check message against known MCP skill keywords
-    const mcpKeywords: [RegExp, string][] = [
-      [/\b(clima|weather|temperatura|pronóstico|lluvia|soleado)\b/i, "mcp_get_weather"],
-      [/\b(calcula|calcular|suma|resta|multiplica|divide|matemática|cuánto es)\b/i, "mcp_calculate"],
-      [/\b(traduc|translate|idioma|inglés|español|francés|portugués)\b/i, "mcp_translate_text"],
-      [/\b(QR|código QR|qr code|genera.*código|escanear)\b/i, "mcp_generate_qr"],
+  // ── MCP Skills: detectar por keywords del catálogo de mcpSkills ──
+  // mcpSkills se pasa desde route() que lo carga de D1 una sola vez
+  for (const skill of mcpSkills) {
+    const skillWords = [
+      skill.mcp_tool_name.replace(/_/g, " "),
+      ...skill.description.toLowerCase().split(/\s+/).filter(w => w.length > 3),
     ];
-    for (const [regex, skillName] of mcpKeywords) {
-      if (regex.test(lower)) {
-        tools.push(skillName);
-      }
+    if (skillWords.some(kw => lower.includes(kw))) {
+      tools.push(skill.skill_name);
     }
   }
 
@@ -384,12 +381,23 @@ export async function route(
   companyId?: number
 ): Promise<{ routing: RoutingDecision; cleanMessage: string }> {
 
+  // Cargar MCP skills de la empresa (una vez para toda la función)
+  let mcpSkills: McpSkillInfo[] = [];
+  if (companyId) {
+    try {
+      const rows = await env.DB.prepare(
+        `SELECT skill_name, mcp_tool_name, description FROM mcp_skills WHERE company_id = ? AND is_active = 1 LIMIT 30`
+      ).bind(companyId).all<McpSkillInfo>();
+      mcpSkills = rows.results ?? [];
+    } catch { /* ignore */ }
+  }
+
   // Detectar si estamos en medio de una acción (email, calendario, etc.)
   const convContext = detectConversationContext(history);
 
   // Free tier: siempre Llama, pero SÍ detectar herramientas por keywords (gratis, no usa LLM)
   if (forceFree) {
-    const preDetected = preDetectTools(rawMessage, connectedProviders);
+    const preDetected = preDetectTools(rawMessage, connectedProviders, mcpSkills);
     const tools: AvailableTool[] = preDetected.tools.length > 0 ? preDetected.tools : ["none"];
     const complexity: TaskComplexity = (preDetected.tools.length > 0 || convContext.hasPendingAction) ? "medium" : "simple";
     const m = MODEL_MAP.simple; // Siempre Llama para free tier
@@ -426,7 +434,7 @@ export async function route(
   }
 
   // Pre-detección por keywords antes del LLM (más confiable para acciones explícitas)
-  const preDetected = preDetectTools(rawMessage, connectedProviders);
+  const preDetected = preDetectTools(rawMessage, connectedProviders, mcpSkills);
 
   // Optimization: skip Llama for short simple messages
   // BUT: longer messages without detected tools might have complex intent → elevate to medium
