@@ -397,7 +397,7 @@ export async function route(
   // Long ambiguous messages → try semantic skill detection first, then Sonnet
   if (longAmbiguous) {
     try {
-      const semanticSkills = await findRelevantSkills(rawMessage, connectedProviders, env, 2, 0.65);
+      const semanticSkills = await findRelevantSkills(rawMessage, connectedProviders, env, 2, 0.55);
       if (semanticSkills.length > 0) {
         const m = MODEL_MAP.medium;
         return {
@@ -456,7 +456,7 @@ export async function route(
   // Semantic fallback: si ni keywords ni Llama encontraron tools, buscar semánticamente
   if (preDetected.tools.length === 0 && llamaTools.filter(t => t !== "none").length === 0) {
     try {
-      const semanticSkills = await findRelevantSkills(rawMessage, connectedProviders, env, 2, 0.70);
+      const semanticSkills = await findRelevantSkills(rawMessage, connectedProviders, env, 2, 0.55);
       if (semanticSkills.length > 0) {
         llamaTools = semanticSkills as AvailableTool[];
       }
