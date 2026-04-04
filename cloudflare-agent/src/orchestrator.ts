@@ -503,9 +503,13 @@ export async function orchestrate(
     return false;
   });
 
-  const toolResults = allowedTools[0] !== "none" && allowedTools.length > 0
-    ? await executeTools(allowedTools as typeof routing.tools_needed, ctx, env)
-    : [];
+  // Ejecutar tools y cargar memoria EN PARALELO
+  const [toolResults, memoryContext] = await Promise.all([
+    allowedTools[0] !== "none" && allowedTools.length > 0
+      ? executeTools(allowedTools as typeof routing.tools_needed, ctx, env)
+      : Promise.resolve([]),
+    loadMemory(env, input.companyId),
+  ]);
 
   // Si hay tools bloqueados, agregar mensaje al contexto
   const blockedContext = blockedTools.length > 0
@@ -513,9 +517,6 @@ export async function orchestrate(
     : "";
 
   const toolContext = formatToolResults(toolResults) + blockedContext;
-
-  // 3.7 Cargar memoria de la empresa
-  const memoryContext = await loadMemory(env, input.companyId);
 
   // 4. Generar respuesta con el modelo seleccionado
   const useCodeMode = shouldUseCodeMode(routing.tools_needed);

@@ -79,26 +79,16 @@ export async function processMessage(
   const hasUrl = /https?:\/\/[^\s]+/.test(text);
   const isBrowserAction = hasUrl && /\b(screenshot|captura|pantalla|entra|navega|abre|llena|formulario|fill|login|descarga|download|extrae|scrape)\b/i.test(lower);
 
-  // Si NO es browser action, verificar si debe ir al orchestrator
-  if (!isBrowserAction) {
-    // Emails → orchestrator
-    const isEmailIntent = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/.test(text)
-      || /\b(email|correo|e-mail|mail)\b/.test(lower);
-    if (isEmailIntent) return { type: "text_response" };
+  // Filesystem actions: crear/leer/listar/borrar archivos en el escritorio
+  const isFilesystemAction = /\b(crea.*archivo|escribir.*archivo|leer.*archivo|lista.*carpeta|elimina.*archivo|escritorio|desktop|documentos)\b/i.test(lower)
+    && /\b(crea|escribe|lee|lista|elimina|borra|abre|guarda)\b/i.test(lower);
 
-    // URLs de video/redes sociales → orchestrator (save_note)
-    const isVideoUrl = /\b(facebook\.com|fb\.watch|instagram\.com|tiktok\.com|youtube\.com|youtu\.be|reel|shorts|\/share\/r\/)\b/i.test(text);
-    if (isVideoUrl) return { type: "text_response" };
-
-    // Consultas de conocimiento/notas/búsqueda → orchestrator (RAG)
-    const isKnowledgeQuery = /\b(notas?|apuntes?|knowledge|obsidian|guard[ée]|qu[ée] tengo|qu[ée] sab|busca|encuentra|informaci[óo]n sobre|cu[ée]ntame|hist[óo]rial|resum)\b/i.test(lower);
-    if (isKnowledgeQuery) return { type: "text_response" };
-
-    // Integraciones (Make, Slack, Notion, HubSpot, Shopify) → orchestrator
-    const isIntegrationIntent = /\b(make|zapier|n8n|automatiza|escenario|trigger|webhook|registra|anota|guarda.*dato|log[gu]ea|slack|notion|hubspot|shopify|pedido|contacto|deal|canal)\b/i.test(lower);
-    if (isIntegrationIntent) return { type: "text_response" };
+  // Si NO es browser action NI filesystem action → directo al orchestrator (sin LLM)
+  if (!isBrowserAction && !isFilesystemAction) {
+    return { type: "text_response" };
   }
 
+  // Solo llama al LLM del Agent Brain para acciones de desktop confirmadas
   try {
     const result = await runLLM(
       env,
