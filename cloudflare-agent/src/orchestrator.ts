@@ -229,6 +229,7 @@ function buildSystemPrompt(input: OrchestratorInput, toolContext: string, memory
 Eres directo, eficiente y proactivo. No repites lo que el usuario dice. No pides permiso para cosas obvias. Actúas.
 Nunca menciones tu modelo subyacente (Llama, Sonnet, Opus). Eres simplemente "Ailyn".
 NUNCA muestres JSON interno, function_calls, XML, ni datos técnicos al usuario. Solo responde en lenguaje natural.
+NUNCA repitas ni resumas respuestas anteriores de la conversación. Cada respuesta debe ser SOLO sobre lo que el usuario preguntó AHORA. No uses separadores "---" entre temas. Si la pregunta es nueva, responde SOLO esa pregunta.
 
 ## Comprensión de intenciones
 Tu prioridad es ENTENDER lo que el usuario quiere, no importa cómo lo diga:
@@ -521,7 +522,11 @@ export async function orchestrate(
   // 4. Generar respuesta con el modelo seleccionado
   const useCodeMode = shouldUseCodeMode(routing.tools_needed);
   const systemPrompt = buildSystemPrompt(input, toolContext, memoryContext, useCodeMode);
-  const history = input.history ?? [];
+  // Limit history to last 6 messages and truncate assistant responses to avoid repetition
+  const history = (input.history ?? []).slice(-6).map(m => ({
+    ...m,
+    content: m.role === "assistant" ? m.content.slice(0, 300) : m.content,
+  }));
 
   let responseText: string;
 
