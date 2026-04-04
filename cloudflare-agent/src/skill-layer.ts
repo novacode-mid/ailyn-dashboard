@@ -158,12 +158,15 @@ export async function findRelevantSkills(
   let found = 0;
   for (const match of results.matches ?? []) {
     if (found >= topK) break;
-    if ((match.score ?? 0) < threshold) continue;
 
     // Process native skills (prefix "skill-") and MCP skills (prefix "mcp-skill-")
     const isNativeSkill = match.id.startsWith("skill-") && !match.id.startsWith("skill-mcp");
     const isMcpSkill = match.id.startsWith("mcp-skill-");
     if (!isNativeSkill && !isMcpSkill) continue;
+
+    // MCP skills get a lower threshold (0.40) — better to try than to miss
+    const effectiveThreshold = isMcpSkill ? Math.min(threshold, 0.40) : threshold;
+    if ((match.score ?? 0) < effectiveThreshold) continue;
 
     const skillName = (match.metadata as Record<string, string>)?.skill_name;
     if (!skillName) continue;

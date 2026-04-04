@@ -52,17 +52,26 @@ async function generateSynonyms(toolName: string, description: string, env: Env)
       {
         messages: [{
           role: "user",
-          content: `Genera 5 frases cortas en español que un usuario podría decir cuando quiere usar esta herramienta. Solo las frases, una por línea, sin números ni explicaciones.
+          content: `Genera 20 frases en español que un usuario diría cuando necesita esta herramienta. Incluye:
+- 5 peticiones directas ("calcula esto", "dame el clima")
+- 5 preguntas indirectas ("va a llover?", "cuánto sale?")
+- 5 con jerga/coloquial ("qué onda con el clima", "hazme la cuenta")
+- 5 con contexto implícito ("necesito paraguas hoy", "cuánto le cobro si son 3 a $50")
+
+Solo las frases, una por línea, sin números ni categorías.
 
 Herramienta: ${toolName}
 Descripción: ${description}`,
         }],
-        max_tokens: 150,
+        max_tokens: 500,
       }
     ) as { response?: string };
 
     const text = typeof result.response === "string" ? result.response : "";
-    return text.split("\n").map(s => s.trim()).filter(s => s.length > 3 && s.length < 80).slice(0, 5);
+    return text.split("\n")
+      .map(s => s.replace(/^[\d.*\-•]+\s*/, "").trim())
+      .filter(s => s.length > 3 && s.length < 100)
+      .slice(0, 20);
   } catch {
     return [`usar ${toolName}`, description.slice(0, 60)];
   }
@@ -237,7 +246,7 @@ export async function scanMcpServer(
     }
 
     // Indexar en Vectorize
-    const embText = `${skillName}: ${description}. Frases: ${synonyms.join(", ")}`;
+    const embText = `${skillName}: ${description}. Un usuario diría: ${synonyms.slice(0, 10).join(". ")}. Palabras clave: ${description.split(/\s+/).filter(w => w.length > 3).join(", ")}`;
     try {
       const embRes = await env.AI.run("@cf/baai/bge-base-en-v1.5", { text: [embText] }) as { data: number[][] };
       await env.KNOWLEDGE_BASE.upsert([{

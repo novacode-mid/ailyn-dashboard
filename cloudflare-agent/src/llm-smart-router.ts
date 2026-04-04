@@ -226,8 +226,10 @@ function preDetectTools(message: string, connectedProviders: string[] = [], mcpS
     // Deduplicate
     const uniqueKeywords = [...new Set(keywords)];
 
-    // Match: any keyword found in the user message
-    if (uniqueKeywords.some(kw => lower.includes(kw))) {
+    // Match: require either a full phrase match OR 2+ individual word matches
+    const phraseMatch = uniqueKeywords.filter(kw => kw.includes(" ") && lower.includes(kw)).length > 0;
+    const wordMatches = uniqueKeywords.filter(kw => !kw.includes(" ") && kw.length > 4 && lower.includes(kw)).length;
+    if (phraseMatch || wordMatches >= 2) {
       tools.push(skill.skill_name);
     }
   }
