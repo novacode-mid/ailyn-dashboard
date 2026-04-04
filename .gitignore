@@ -72,3 +72,4 @@ desktop-app/dist/
 desktop-app/dist-electron/
 desktop-app/node_modules/
 desktop-app/release/
+test-mcp-server/node_modules/
