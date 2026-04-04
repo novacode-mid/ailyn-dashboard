@@ -11,6 +11,7 @@ import type { ExecutionContext } from "./tool-executor";
 import { getPlanLLMProvider } from "./usage";
 import { getCompanyFeatures, isToolAllowed, getBlockedMessage } from "./features";
 import { loadMemory, detectLearningIntent, saveFact } from "./memory";
+import { loadSmartContext, saveEntitiesAsMemory } from "./context-manager";
 
 // Gmail draft helper (duplicado aquí para evitar import circular con tool-executor)
 async function gmailCreateDraftViaOrchestrator(token: string, to: string, subject: string, body: string): Promise<void> {
@@ -217,7 +218,7 @@ async function callOpenAIModel(
 
 // ── System prompt ──────────────────────────────────────────────────────────
 
-function buildSystemPrompt(input: OrchestratorInput, toolContext: string, memoryContext = "", useCodeMode = false): string {
+function buildSystemPrompt(input: OrchestratorInput, toolContext: string, memoryContext = "", useCodeMode = false, summaryContext = ""): string {
   const now = new Date().toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
 
   // Add conversation context summary for reference resolution
@@ -359,6 +360,7 @@ Si el usuario pide MÚLTIPLES acciones en un solo mensaje (ej: "envía email Y a
 Ejemplo: Si pidió email + reunión + followup, primero redacta el email con ---EMAIL_LISTO--- y al final agrega:
 ---PENDIENTES: agendar reunión con Pedro el jueves a las 3pm, follow-up en 3 días a pedro@smartpasses.io---
 ${useCodeMode ? CODE_MODE_PROMPT : ""}
+${summaryContext}
 ${memoryContext}
 ${historyContext}
 ${toolContext}`;
@@ -504,13 +506,17 @@ export async function orchestrate(
     return false;
   });
 
-  // Ejecutar tools y cargar memoria EN PARALELO
-  const [toolResults, memoryContext] = await Promise.all([
+  // Ejecutar tools, cargar memoria, y cargar contexto inteligente EN PARALELO
+  const [toolResults, memoryContext, smartContext] = await Promise.all([
     allowedTools[0] !== "none" && allowedTools.length > 0
       ? executeTools(allowedTools as typeof routing.tools_needed, ctx, env)
       : Promise.resolve([]),
     loadMemory(env, input.companyId),
+    loadSmartContext(env, input.companyId, input.sessionId),
   ]);
+
+  // Extraer entidades del mensaje del usuario (async, no bloquea)
+  saveEntitiesAsMemory(env, input.companyId, cleanMessage, "user").catch(() => {});
 
   // Si hay tools bloqueados, agregar mensaje al contexto
   const blockedContext = blockedTools.length > 0
@@ -521,12 +527,8 @@ export async function orchestrate(
 
   // 4. Generar respuesta con el modelo seleccionado
   const useCodeMode = shouldUseCodeMode(routing.tools_needed);
-  const systemPrompt = buildSystemPrompt(input, toolContext, memoryContext, useCodeMode);
-  // Limit history to last 6 messages and truncate assistant responses to avoid repetition
-  const history = (input.history ?? []).slice(-6).map(m => ({
-    ...m,
-    content: m.role === "assistant" ? m.content.slice(0, 300) : m.content,
-  }));
+  const systemPrompt = buildSystemPrompt(input, toolContext, memoryContext, useCodeMode, smartContext.summaryContext);
+  const history = smartContext.history;
 
   let responseText: string;
 
