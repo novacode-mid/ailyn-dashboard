@@ -29,6 +29,16 @@ crons = ["*/15 * * * *", "0 14 * * *"]
 binding = "KNOWLEDGE_BASE"
 index_name = "knowledge-base"
 
+# ── Durable Objects (Desktop Tunnel WebSocket) ────────────────────────────
+[durable_objects]
+bindings = [
+  { name = "DESKTOP_TUNNEL", class_name = "DesktopTunnel" }
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["DesktopTunnel"]
+
 # ── Secrets (set via: wrangler secret put SECRET_NAME) ─────────────────────
 # TELEGRAM_BOT_TOKEN    → wrangler secret put TELEGRAM_BOT_TOKEN
 # TELEGRAM_SECRET_TOKEN → wrangler secret put TELEGRAM_SECRET_TOKEN

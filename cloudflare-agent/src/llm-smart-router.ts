@@ -2,6 +2,7 @@
 // Usa Llama (gratis) para clasificar la intención y selecciona el mejor modelo.
 
 import type { Env } from "./types";
+import { findRelevantSkills } from "./skill-layer";
 
 export type TaskComplexity = "simple" | "medium" | "complex";
 
@@ -393,8 +394,26 @@ export async function route(
   const shortSimple = rawMessage.length < 30 && preDetected.tools.length === 0 && !convContext.hasPendingAction;
   const longAmbiguous = rawMessage.length > 80 && preDetected.tools.length === 0 && !convContext.hasPendingAction;
 
-  // Long ambiguous messages → Sonnet for better intent understanding
+  // Long ambiguous messages → try semantic skill detection first, then Sonnet
   if (longAmbiguous) {
+    try {
+      const semanticSkills = await findRelevantSkills(rawMessage, connectedProviders, env, 2, 0.65);
+      if (semanticSkills.length > 0) {
+        const m = MODEL_MAP.medium;
+        return {
+          routing: {
+            complexity: "medium" as TaskComplexity,
+            model: m.model,
+            provider: m.provider,
+            tools_needed: semanticSkills as AvailableTool[],
+            estimated_cost: m.cost,
+          },
+          cleanMessage: rawMessage,
+        };
+      }
+    } catch {
+      // Vectorize query failed — fall through to Sonnet
+    }
     const m = MODEL_MAP.medium;
     return {
       routing: {
@@ -432,6 +451,18 @@ export async function route(
     const classified = await classifyWithLlama(rawMessage, env, connectedProviders);
     llamaComplexity = classified.complexity;
     llamaTools = classified.tools;
+  }
+
+  // Semantic fallback: si ni keywords ni Llama encontraron tools, buscar semánticamente
+  if (preDetected.tools.length === 0 && llamaTools.filter(t => t !== "none").length === 0) {
+    try {
+      const semanticSkills = await findRelevantSkills(rawMessage, connectedProviders, env, 2, 0.70);
+      if (semanticSkills.length > 0) {
+        llamaTools = semanticSkills as AvailableTool[];
+      }
+    } catch {
+      // Vectorize unavailable — continue without semantic detection
+    }
   }
 
   // Fusionar tools detectadas por keywords con las del clasificador

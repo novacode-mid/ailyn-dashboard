@@ -4,6 +4,7 @@
 
 import type { Env } from "./types";
 import { route, modelIndicator } from "./llm-smart-router";
+import { CODE_MODE_PROMPT, parseCodeModeResponse, shouldUseCodeMode } from "./code-mode";
 import type { RoutingDecision } from "./llm-smart-router";
 import { executeTools, formatToolResults } from "./tool-executor";
 import type { ExecutionContext } from "./tool-executor";
@@ -216,7 +217,7 @@ async function callOpenAIModel(
 
 // ── System prompt ──────────────────────────────────────────────────────────
 
-function buildSystemPrompt(input: OrchestratorInput, toolContext: string, memoryContext = ""): string {
+function buildSystemPrompt(input: OrchestratorInput, toolContext: string, memoryContext = "", useCodeMode = false): string {
   const now = new Date().toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
 
   // Add conversation context summary for reference resolution
@@ -356,6 +357,7 @@ Si el usuario pide MÚLTIPLES acciones en un solo mensaje (ej: "envía email Y a
 2. Al final de tu respuesta, lista las acciones pendientes con: ---PENDIENTES: acción1, acción2---
 Ejemplo: Si pidió email + reunión + followup, primero redacta el email con ---EMAIL_LISTO--- y al final agrega:
 ---PENDIENTES: agendar reunión con Pedro el jueves a las 3pm, follow-up en 3 días a pedro@smartpasses.io---
+${useCodeMode ? CODE_MODE_PROMPT : ""}
 ${memoryContext}
 ${historyContext}
 ${toolContext}`;
@@ -516,7 +518,8 @@ export async function orchestrate(
   const memoryContext = await loadMemory(env, input.companyId);
 
   // 4. Generar respuesta con el modelo seleccionado
-  const systemPrompt = buildSystemPrompt(input, toolContext, memoryContext);
+  const useCodeMode = shouldUseCodeMode(routing.tools_needed);
+  const systemPrompt = buildSystemPrompt(input, toolContext, memoryContext, useCodeMode);
   const history = input.history ?? [];
 
   let responseText: string;
@@ -529,11 +532,52 @@ export async function orchestrate(
     responseText = await callCloudflareModel(routing.model, systemPrompt, cleanMessage, history, env);
   }
 
-  // 5. Post-procesamiento: extraer email draft si el LLM lo generó (NO enviar — esperar aprobación)
-  // Detectar por marcador en el texto, no solo por tools_needed (el usuario puede confirmar en un mensaje de seguimiento)
-  let emailDraft: EmailDraft | undefined;
+  // 5. Post-procesamiento: Code Mode (JSON actions) o marcadores legacy
 
-  if (responseText.includes("---EMAIL_LISTO---")) {
+  // 5.0 Try Code Mode first
+  let emailDraft: EmailDraft | undefined;
+  let calendarDraft: CalendarDraft | undefined;
+  let followupDraft: FollowupDraft | undefined;
+  let noteDraft: NoteDraft | undefined;
+
+  const codeModeResult = parseCodeModeResponse(responseText);
+  if (codeModeResult) {
+    // Code Mode parsed successfully — extract actions
+    responseText = codeModeResult.reply;
+
+    for (const action of codeModeResult.actions ?? []) {
+      switch (action.type) {
+        case "email":
+          emailDraft = { to: action.to, subject: action.subject, body: action.body };
+          break;
+        case "calendar":
+          calendarDraft = { title: action.title, date: action.date, startTime: action.startTime, endTime: action.endTime, description: action.description, attendees: action.attendees };
+          break;
+        case "followup":
+          followupDraft = { to: action.to, days: action.days, subject: action.subject, context: action.context };
+          break;
+        case "note":
+          noteDraft = { title: action.title, content: action.content, url: action.url };
+          break;
+        case "make_trigger": {
+          // Execute Make trigger directly
+          const makeCreds = toolResults.find(r => r.tool === "make_trigger");
+          if (makeCreds?.data && (makeCreds.data as Record<string, unknown>).webhook_url) {
+            const webhookUrl = (makeCreds.data as Record<string, unknown>).webhook_url as string;
+            fetch(webhookUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: action.action, data: action.data }),
+            }).catch(() => {});
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  // 5.1 Legacy markers fallback (if Code Mode didn't parse)
+  if (!codeModeResult && responseText.includes("---EMAIL_LISTO---")) {
     // Extraer destinatario del texto o de tool results
     const emailResult = toolResults.find(r => r.tool === "send_email");
     const recipientFromTool = (emailResult?.data as { to?: string })?.to;
@@ -553,9 +597,7 @@ export async function orchestrate(
 
   // 6. Post-procesamiento: extraer calendar draft si el LLM lo generó
   // Detectar por marcador en el texto, no solo por tools_needed (confirmaciones en mensajes de seguimiento)
-  let calendarDraft: CalendarDraft | undefined;
-
-  if (responseText.includes("---EVENTO_LISTO---")) {
+  if (!codeModeResult && responseText.includes("---EVENTO_LISTO---")) {
     const parts = responseText.split("---EVENTO_LISTO---");
     const jsonStr = parts[1]?.trim();
     if (jsonStr) {
@@ -582,9 +624,7 @@ export async function orchestrate(
   }
 
   // 7. Post-procesamiento: extraer follow-up de los tool results (programático, no depende del LLM)
-  let followupDraft: FollowupDraft | undefined;
-
-  const followupResult = toolResults.find(r => r.tool === "schedule_followup" && r.success);
+  const followupResult = !codeModeResult ? toolResults.find(r => r.tool === "schedule_followup" && r.success) : null;
   const followupData = followupResult?.data as { action?: string; to?: string; days?: number; context?: string; subject?: string } | undefined;
   if (followupData?.action === "followup_ready" && followupData.to) {
     followupDraft = {
@@ -609,10 +649,8 @@ export async function orchestrate(
     responseText = responseText.replace(/---PENDIENTES:.+?---/i, "").trim();
   }
 
-  // 9. Extract note for Obsidian
-  let noteDraft: NoteDraft | undefined;
-
-  if (responseText.includes("---NOTA_LISTA---") && responseText.includes("---FIN_NOTA---")) {
+  // 9. Extract note for Obsidian (legacy markers)
+  if (!codeModeResult && responseText.includes("---NOTA_LISTA---") && responseText.includes("---FIN_NOTA---")) {
     const noteMatch = responseText.match(/---NOTA_LISTA---\s*([\s\S]*?)\s*---FIN_NOTA---/);
     if (noteMatch) {
       const noteContent = noteMatch[1].trim();

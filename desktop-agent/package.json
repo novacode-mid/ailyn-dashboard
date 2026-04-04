@@ -12,9 +12,11 @@
     "dev": "tsc && node dist/index.js start"
   },
   "dependencies": {
-    "playwright": "^1.52.0"
+    "playwright": "^1.52.0",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@types/ws": "^8.5.0",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.0"
   }

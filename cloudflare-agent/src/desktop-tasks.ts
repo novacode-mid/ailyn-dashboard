@@ -98,7 +98,26 @@ export async function createDesktopTask(
      RETURNING id`
   ).bind(companyId, taskType, JSON.stringify(config), instruction ?? null, batchId ?? null)
     .first<{ id: number }>();
-  return r?.id ?? 0;
+
+  const taskId = r?.id ?? 0;
+
+  // Push via WebSocket tunnel if Desktop Agent is connected
+  try {
+    const doId = env.DESKTOP_TUNNEL.idFromName("global");
+    const stub = env.DESKTOP_TUNNEL.get(doId);
+    await stub.fetch(new Request("https://tunnel/push", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        company_id: String(companyId),
+        task: { id: taskId, task_type: taskType, config: JSON.stringify(config), instruction, batch_id: batchId, status: "pending" },
+      }),
+    }));
+  } catch {
+    // WebSocket push failed — Desktop Agent will pick it up via polling
+  }
+
+  return taskId;
 }
 
 export async function updateDesktopTaskStatus(

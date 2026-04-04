@@ -25,7 +25,9 @@ import { appendHistory, clearHistory, getHistory } from "./kv";
 import { sendPushNotification } from "./smartpasses";
 import { registerWebhook, sendMessage } from "./telegram";
 import { saveIntegration } from "./integrations-hub";
-import { createCheckout, handlePolarWebhook } from "./billing";
+import { createCheckout } from "./billing";
+import { indexSkills } from "./skill-layer";
+export { DesktopTunnel } from "./desktop-tunnel";
 import type { Env, TelegramUpdate } from "./types";
 
 // ── CORS ──────────────────────────────────────────────────────────────────
@@ -3263,6 +3265,43 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
        FROM conversation_history WHERE company_id = ? AND session_id = ? ORDER BY created_at ASC LIMIT 200`
     ).bind(user.company_id, sessionId).all();
     return corsResponse(JSON.stringify({ messages: rows.results ?? [] }), 200, undefined, request);
+  }
+
+  // ── Desktop Tunnel (WebSocket) ──────────────────────────────────────────
+  // GET /api/desktop/tunnel — WebSocket upgrade for Desktop Agent
+  if (pathname === "/api/desktop/tunnel" && request.headers.get("Upgrade") === "websocket") {
+    const user = await authenticateUser(request, env);
+    if (!user) return new Response("Unauthorized", { status: 401 });
+
+    const id = env.DESKTOP_TUNNEL.idFromName("global");
+    const stub = env.DESKTOP_TUNNEL.get(id);
+    const tunnelUrl = new URL(request.url);
+    tunnelUrl.searchParams.set("company_id", String(user.company_id));
+    return stub.fetch(new Request(tunnelUrl.toString(), request));
+  }
+
+  // GET /api/desktop/tunnel/status — check if Desktop Agent is connected
+  if (request.method === "GET" && pathname === "/api/desktop/tunnel/status") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    const id = env.DESKTOP_TUNNEL.idFromName("global");
+    const stub = env.DESKTOP_TUNNEL.get(id);
+    const res = await stub.fetch(new Request(`https://tunnel/status?company_id=${user.company_id}`));
+    const data = await res.json();
+    return corsResponse(JSON.stringify(data), 200, undefined, request);
+  }
+
+  // POST /api/admin/skills/reindex — re-indexar skills en Vectorize
+  if (request.method === "POST" && pathname === "/api/admin/skills/reindex") {
+    const auth = request.headers.get("X-CF-Token") ?? "";
+    if (auth !== env.CLOUDFLARE_ADMIN_TOKEN) return corsResponse(JSON.stringify({ error: "Unauthorized" }), 401, undefined, request);
+    try {
+      const result = await indexSkills(env);
+      return corsResponse(JSON.stringify({ ok: true, ...result }), 200, undefined, request);
+    } catch (err) {
+      return corsResponse(JSON.stringify({ error: String(err) }), 500, undefined, request);
+    }
   }
 
   // POST /api/billing/checkout — crear sesion de pago
