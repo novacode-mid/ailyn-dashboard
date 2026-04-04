@@ -513,10 +513,14 @@ export async function route(
   // Fusionar tools detectadas por keywords con las del clasificador
   let mergedTools = [...new Set([...preDetected.tools, ...llamaTools].filter(t => t !== "none"))];
 
-  // Resolver conflictos: schedule_followup y send_email no van juntos
-  // (follow-up ES un email diferido, no hay que enviar ahora)
+  // Resolver conflictos
   if (mergedTools.includes("schedule_followup")) {
     mergedTools = mergedTools.filter(t => t !== "send_email" && t !== "gmail_send");
+  }
+  // MCP skills son más específicos — si hay uno, quitar tools genéricos que conflictúan
+  const hasMcpSkill = mergedTools.some(t => t.startsWith("mcp_"));
+  if (hasMcpSkill) {
+    mergedTools = mergedTools.filter(t => t.startsWith("mcp_") || (t !== "make_trigger" && t !== "save_note" && t !== "web_search"));
   }
 
   const tools: AvailableTool[] = mergedTools.length > 0 ? mergedTools : ["none"];
