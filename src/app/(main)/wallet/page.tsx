@@ -148,7 +148,7 @@ export default function WalletPage() {
 
   return (
     <DashboardShell>
-      <div className="p-6 space-y-8 max-w-5xl">
+      <div className="p-4 sm:p-6 space-y-8 max-w-5xl">
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-white">Tarjetas Digitales</h1>

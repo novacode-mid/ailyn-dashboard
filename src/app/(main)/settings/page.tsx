@@ -335,7 +335,7 @@ export default function SettingsPage() {
 
   return (
     <DashboardShell>
-      <div className="p-6 max-w-xl space-y-6">
+      <div className="p-4 sm:p-6 max-w-xl space-y-6">
         <h1 className="text-xl font-bold text-white">Configuración</h1>
 
         {/* Cuenta */}

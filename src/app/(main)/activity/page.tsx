@@ -146,7 +146,7 @@ export default function ActivityPage() {
 
   return (
     <DashboardShell>
-      <div className="p-6 max-w-5xl mx-auto space-y-8">
+      <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-8">
         <div>
           <h1 className="text-2xl font-bold text-white">Centro de Actividad</h1>
           <p className="text-gray-400 text-sm mt-1">Todo lo que Ailyn puede hacer y lo que esta haciendo por ti</p>

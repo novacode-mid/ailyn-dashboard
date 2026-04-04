@@ -22,7 +22,7 @@ export default function WalletChatPage() {
   // Sin passId: mostrar selector con sidebar
   return (
     <DashboardShell>
-      <div className="p-6 space-y-4">
+      <div className="p-4 sm:p-6 space-y-4">
         <h1 className="text-xl font-bold text-white">Web Chat</h1>
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 text-center">
           <p className="text-gray-400 text-sm">

@@ -101,7 +101,7 @@ function StepForm({
       </div>
 
       {step.action_type === "prospect_research" && (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <input
             placeholder="Industria (ej: tecnología)"
             value={String(cfg.industry ?? "")}
@@ -444,7 +444,7 @@ export default function AutomationsPage() {
 
   return (
     <DashboardShell>
-      <div className="p-6 max-w-3xl space-y-6">
+      <div className="p-4 sm:p-6 max-w-3xl space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

@@ -70,7 +70,7 @@ export default function MarketplacePage() {
 
   return (
     <DashboardShell>
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-6">
         <div>
           <h1 className="text-xl font-bold text-white">Skill Marketplace</h1>
           <p className="text-gray-400 text-sm mt-0.5">Instala skills creados por la comunidad para ampliar las capacidades de tu agente</p>

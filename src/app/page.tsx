@@ -290,13 +290,13 @@ export default function LandingPage() {
               <a href="#pricing"  className="hover:text-white transition-colors">Precios</a>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Link href="/login" className="text-sm text-white/60 hover:text-white transition-colors px-3 py-2">
-                Iniciar sesión
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Link href="/login" className="text-xs sm:text-sm text-white/60 hover:text-white transition-colors px-2 sm:px-3 py-2">
+                Entrar
               </Link>
               <Link href="/signup"
                 className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600
-                  rounded-xl px-5 py-2 text-sm text-white font-semibold
+                  rounded-xl px-3 sm:px-5 py-2 text-xs sm:text-sm text-white font-semibold
                   shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40
                   transition-all duration-300 hover:scale-105"
               >
@@ -307,7 +307,7 @@ export default function LandingPage() {
         </nav>
 
         {/* ── HERO ────────────────────────────────────────────────── */}
-        <section className="relative pt-44 pb-32 px-6 text-center overflow-hidden">
+        <section className="relative pt-28 sm:pt-44 pb-16 sm:pb-32 px-4 sm:px-6 text-center overflow-hidden">
           <div className="aurora absolute inset-x-0 top-20 h-80 bg-gradient-to-r from-purple-500/25 via-pink-500/15 to-cyan-500/20 blur-3xl pointer-events-none" />
 
           <div className="relative mx-auto max-w-4xl">
@@ -346,7 +346,7 @@ export default function LandingPage() {
               </a>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-lg mx-auto">
               {[
                 { v: "4.2x", l: "más leads calificados" },
                 { v: "24/7", l: "operación autónoma" },

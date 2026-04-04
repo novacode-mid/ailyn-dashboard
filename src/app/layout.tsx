@@ -8,6 +8,8 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Ailyn — AI · Link Your Network',
   description: 'Tu agente autónomo de inteligencia comercial',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
+  themeColor: '#0f172a',
 }
 
 export default function RootLayout({

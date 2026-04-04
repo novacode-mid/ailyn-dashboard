@@ -67,7 +67,7 @@ export default function KnowledgePage() {
 
   return (
     <DashboardShell>
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-6">
         <h1 className="text-xl font-bold text-white">Knowledge Base</h1>
 
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-3">
