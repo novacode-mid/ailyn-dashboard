@@ -464,7 +464,7 @@ export async function orchestrate(
   const forceFree = planProvider === "cloudflare" || (input.forceFree ?? false);
 
   // 2. Router: clasificar + seleccionar modelo (con historial para detectar follow-ups)
-  const { routing, cleanMessage } = await route(input.message, env, forceFree, input.history ?? [], input.connectedProviders ?? []);
+  const { routing, cleanMessage } = await route(input.message, env, forceFree, input.history ?? [], input.connectedProviders ?? [], input.companyId);
 
   // 2.5 Response Cache: para mensajes simples sin herramientas, buscar en KV
   const isSimpleNoTools = routing.complexity === "simple" && routing.tools_needed[0] === "none";

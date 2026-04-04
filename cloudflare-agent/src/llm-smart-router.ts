@@ -155,12 +155,12 @@ function preDetectTools(message: string, connectedProviders: string[] = []): { t
     tools.push("action_control");
   }
 
-  // Video/content URL → save as note
+  // Video/content URL → save as note (but NOT if user wants to DO something with the URL)
   const hasUrl = /https?:\/\/[^\s]+/.test(message);
   const isVideoUrl = /\b(facebook\.com|fb\.watch|instagram\.com|tiktok\.com|youtube\.com|youtu\.be|reel|shorts|watch)\b/i.test(lower);
   const wantsSave = /\b(gu[áa]rda|guarda|nota|apunta|resume|resum[ií]|save|anota|obsidian)\b/i.test(lower);
-  // If it's just a video URL with no other context, assume they want to save it
-  if (hasUrl && (isVideoUrl || wantsSave)) {
+  const hasActionIntent = /\b(genera|crea|traduce|calcula|descarga|entra|navega|abre|llena|screenshot|captura|QR|c[óo]digo)\b/i.test(lower);
+  if (hasUrl && (isVideoUrl || wantsSave) && !hasActionIntent) {
     tools.push("save_note");
   }
 
@@ -194,6 +194,23 @@ function preDetectTools(message: string, connectedProviders: string[] = []): { t
   if (connected.has("make")) {
     if (/\b(make|zapier|n8n|automatiza|escenario|trigger|webhook|registra|anota|guarda.*dato|log[gu]ea)\b/.test(lower)) {
       tools.push("make_trigger");
+    }
+  }
+
+  // ── MCP Skills: detectar por keywords de la descripción/sinónimos ──
+  // Se cargan de KV cache para no consultar D1 en cada mensaje
+  if (connectedProviders.length > 0 || tools.length === 0) {
+    // Check message against known MCP skill keywords
+    const mcpKeywords: [RegExp, string][] = [
+      [/\b(clima|weather|temperatura|pronóstico|lluvia|soleado)\b/i, "mcp_get_weather"],
+      [/\b(calcula|calcular|suma|resta|multiplica|divide|matemática|cuánto es)\b/i, "mcp_calculate"],
+      [/\b(traduc|translate|idioma|inglés|español|francés|portugués)\b/i, "mcp_translate_text"],
+      [/\b(QR|código QR|qr code|genera.*código|escanear)\b/i, "mcp_generate_qr"],
+    ];
+    for (const [regex, skillName] of mcpKeywords) {
+      if (regex.test(lower)) {
+        tools.push(skillName);
+      }
     }
   }
 
@@ -235,27 +252,46 @@ const INTEGRATION_TOOL_MAP: Record<string, { tool: string; hint: string }> = {
   make: { tool: "make_trigger", hint: "Usa make_trigger cuando el usuario quiere registrar datos, automatizar algo, o disparar un escenario." },
 };
 
-function buildClassificationPrompt(connectedProviders: string[]): string {
+function buildClassificationPrompt(connectedProviders: string[], mcpSkills: { skill_name: string; description: string }[] = []): string {
   const integrationTools = connectedProviders
     .filter(p => INTEGRATION_TOOL_MAP[p])
     .map(p => INTEGRATION_TOOL_MAP[p].tool);
-  const toolsList = integrationTools.length > 0
-    ? `${BASE_TOOLS}, ${integrationTools.join(", ")}`
+
+  const mcpToolNames = mcpSkills.map(s => s.skill_name);
+
+  const allExtraTools = [...integrationTools, ...mcpToolNames];
+  const toolsList = allExtraTools.length > 0
+    ? `${BASE_TOOLS}, ${allExtraTools.join(", ")}`
     : BASE_TOOLS;
 
-  const hints = connectedProviders
+  const integrationHints = connectedProviders
     .filter(p => INTEGRATION_TOOL_MAP[p])
-    .map(p => INTEGRATION_TOOL_MAP[p].hint)
-    .join("\n");
+    .map(p => INTEGRATION_TOOL_MAP[p].hint);
+
+  const mcpHints = mcpSkills.map(s => `Usa ${s.skill_name} cuando: ${s.description}`);
+
+  const allHints = [...integrationHints, ...mcpHints].join("\n");
 
   return CLASSIFICATION_PROMPT_BASE
     .replace("TOOLS_LIST", toolsList)
-    .replace("INTEGRATION_HINTS", hints ? `\n${hints}` : "");
+    .replace("INTEGRATION_HINTS", allHints ? `\n${allHints}` : "");
 }
 
-async function classifyWithLlama(message: string, env: Env, connectedProviders: string[] = []): Promise<{ complexity: TaskComplexity; tools: AvailableTool[] }> {
-  const safeMessage = JSON.stringify(message.slice(0, 500)).slice(1, -1); // JSON-escape, remove outer quotes
-  const prompt = buildClassificationPrompt(connectedProviders).replace("USER_MESSAGE", safeMessage);
+async function classifyWithLlama(message: string, env: Env, connectedProviders: string[] = [], companyId?: number): Promise<{ complexity: TaskComplexity; tools: AvailableTool[] }> {
+  const safeMessage = JSON.stringify(message.slice(0, 500)).slice(1, -1);
+
+  // Load MCP skills for this company
+  let mcpSkillsList: { skill_name: string; description: string }[] = [];
+  if (companyId) {
+    try {
+      const rows = await env.DB.prepare(
+        `SELECT skill_name, description FROM mcp_skills WHERE company_id = ? AND is_active = 1 LIMIT 20`
+      ).bind(companyId).all<{ skill_name: string; description: string }>();
+      mcpSkillsList = rows.results ?? [];
+    } catch { /* ignore */ }
+  }
+
+  const prompt = buildClassificationPrompt(connectedProviders, mcpSkillsList).replace("USER_MESSAGE", safeMessage);
 
   try {
     const result = await env.AI.run(
@@ -280,7 +316,8 @@ async function classifyWithLlama(message: string, env: Env, connectedProviders: 
 
     const baseValid = ["none","gmail_read","gmail_send","send_email","calendar_read","calendar_write","github","desktop_screenshot","desktop_scrape","desktop_download","desktop_fill_form","web_search","rag_search","prospect_research","tasks_manage","schedule_followup","crm_lookup","action_control","save_note","get_suggestions","inbox_organized"];
     const integrationValid = connectedProviders.filter(p => INTEGRATION_TOOL_MAP[p]).map(p => INTEGRATION_TOOL_MAP[p].tool);
-    const validTools = new Set<string>([...baseValid, ...integrationValid]);
+    const mcpValid = mcpSkillsList.map(s => s.skill_name);
+    const validTools = new Set<string>([...baseValid, ...integrationValid, ...mcpValid]);
 
     const tools: AvailableTool[] = (parsed.tools ?? ["none"])
       .filter((t): t is AvailableTool => validTools.has(t));
@@ -342,7 +379,9 @@ export async function route(
   /** Historial reciente para detectar contexto conversacional */
   history: { role: string; content: string }[] = [],
   /** Integraciones activas de la empresa */
-  connectedProviders: string[] = []
+  connectedProviders: string[] = [],
+  /** ID de la empresa (para cargar MCP skills) */
+  companyId?: number
 ): Promise<{ routing: RoutingDecision; cleanMessage: string }> {
 
   // Detectar si estamos en medio de una acción (email, calendario, etc.)
@@ -448,21 +487,27 @@ export async function route(
 
   if (!highConfidence) {
     // Only call Llama if pre-detection didn't find anything
-    const classified = await classifyWithLlama(rawMessage, env, connectedProviders);
+    const classified = await classifyWithLlama(rawMessage, env, connectedProviders, companyId);
     llamaComplexity = classified.complexity;
     llamaTools = classified.tools;
   }
 
-  // Semantic fallback: si ni keywords ni Llama encontraron tools, buscar semánticamente
-  if (preDetected.tools.length === 0 && llamaTools.filter(t => t !== "none").length === 0) {
-    try {
-      const semanticSkills = await findRelevantSkills(rawMessage, connectedProviders, env, 2, 0.55);
-      if (semanticSkills.length > 0) {
+  // Semantic search: SIEMPRE buscar MCP skills y agregar si matchean alto
+  try {
+    const semanticSkills = await findRelevantSkills(rawMessage, connectedProviders, env, 2, 0.55);
+    if (semanticSkills.length > 0) {
+      // MCP skills (mcp_*) tienen prioridad sobre tools nativos genéricos
+      const mcpSkills = semanticSkills.filter(s => s.startsWith("mcp_"));
+      if (mcpSkills.length > 0) {
+        // Si encontramos MCP skills relevantes, reemplazar tools que puedan conflictuar
+        llamaTools = [...llamaTools.filter(t => t !== "save_note" && t !== "none"), ...mcpSkills] as AvailableTool[];
+      } else if (preDetected.tools.length === 0 && llamaTools.filter(t => t !== "none").length === 0) {
+        // Fallback: usar skills nativos semánticos si no hay nada más
         llamaTools = semanticSkills as AvailableTool[];
       }
-    } catch {
-      // Vectorize unavailable — continue without semantic detection
     }
+  } catch {
+    // Vectorize unavailable — continue without semantic detection
   }
 
   // Fusionar tools detectadas por keywords con las del clasificador
