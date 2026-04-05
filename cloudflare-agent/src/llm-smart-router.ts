@@ -226,10 +226,11 @@ function preDetectTools(message: string, connectedProviders: string[] = [], mcpS
     // Deduplicate
     const uniqueKeywords = [...new Set(keywords)];
 
-    // Match: require either a full phrase match OR 2+ individual word matches
-    const phraseMatch = uniqueKeywords.filter(kw => kw.includes(" ") && lower.includes(kw)).length > 0;
-    const wordMatches = uniqueKeywords.filter(kw => !kw.includes(" ") && kw.length > 4 && lower.includes(kw)).length;
-    if (phraseMatch || wordMatches >= 2) {
+    // Match: full phrase, OR strong keyword (7+ chars), OR 2+ medium keywords (5+ chars)
+    const phraseMatch = uniqueKeywords.some(kw => kw.includes(" ") && lower.includes(kw));
+    const strongMatch = uniqueKeywords.some(kw => !kw.includes(" ") && kw.length >= 7 && lower.includes(kw));
+    const mediumMatches = uniqueKeywords.filter(kw => !kw.includes(" ") && kw.length >= 5 && lower.includes(kw)).length;
+    if (phraseMatch || strongMatch || mediumMatches >= 2) {
       tools.push(skill.skill_name);
     }
   }
