@@ -34,11 +34,9 @@ export default function WalletPage() {
   const [error, setError] = useState("");
 
   // Create
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [subtitle, setSubtitle] = useState("");
-  const [level, setLevel] = useState("Miembro");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -101,26 +99,24 @@ export default function WalletPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!firstName.trim()) return;
     setCreating(true);
     setCreateResult(null);
     try {
+      const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
       const res = await fetch(`${WORKER_URL}/api/wallet/create-pass`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
-          holder_name: name.trim(),
+          holder_name: fullName,
           holder_email: email.trim() || undefined,
-          holder_phone: phone.trim() || undefined,
-          subtitle: subtitle.trim() || undefined,
-          level: level.trim() || "Miembro",
           thumbnail_url: thumbnailUrl || undefined,
         }),
       });
       const data = await res.json() as CreateResult;
       if (data.ok) {
         setCreateResult(data);
-        setName(""); setEmail(""); setPhone("");
+        setFirstName(""); setLastName(""); setEmail(""); setThumbnailUrl("");
         loadPasses();
       } else {
         setError((data as unknown as { error?: string }).error ?? "Error al crear");
@@ -302,25 +298,18 @@ export default function WalletPage() {
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
               <h2 className="text-white font-medium text-sm">Crear nueva tarjeta</h2>
               <form onSubmit={handleCreate} className="space-y-3">
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre del cliente *" required className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400" />
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (para enviar tarjeta)" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400" />
                 <div className="grid grid-cols-2 gap-2">
-                  <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Subtitulo (ej: Chatbots AI)" className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400" />
-                  <select value={level} onChange={(e) => setLevel(e.target.value)} className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-purple-400">
-                    <option value="Miembro">Miembro</option>
-                    <option value="VIP">VIP</option>
-                    <option value="Premium">Premium</option>
-                    <option value="Experto">Experto</option>
-                    <option value="Gold">Gold</option>
-                  </select>
+                  <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Nombre *" required className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400" />
+                  <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Apellido" className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400" />
                 </div>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400" />
 
                 {/* Foto */}
                 <div className="flex items-center gap-3">
                   {thumbnailUrl ? (
-                    <img src={thumbnailUrl} alt="" className="w-12 h-12 rounded-lg object-cover border border-gray-700" />
+                    <img src={thumbnailUrl} alt="" className="w-12 h-12 rounded-full object-cover border border-gray-700" />
                   ) : (
-                    <div className="w-12 h-12 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-500 text-lg">📷</div>
+                    <div className="w-12 h-12 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-500 text-lg">📷</div>
                   )}
                   <label className="flex-1">
                     <span className="text-xs text-purple-400 hover:text-purple-300 cursor-pointer">{uploading ? "Subiendo..." : thumbnailUrl ? "Cambiar foto" : "Subir foto del cliente"}</span>
@@ -328,7 +317,7 @@ export default function WalletPage() {
                   </label>
                 </div>
 
-                <button type="submit" disabled={creating || !name.trim()} className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors">
+                <button type="submit" disabled={creating || !firstName.trim()} className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors">
                   {creating ? "Creando..." : "Crear tarjeta"}
                 </button>
               </form>

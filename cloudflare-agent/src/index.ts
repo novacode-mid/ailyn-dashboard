@@ -2312,7 +2312,7 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
     const user = await authenticateUser(request, env);
     if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
 
-    let body: { name: string; email?: string; phone?: string; subtitle?: string; level?: string; thumbnail_url?: string };
+    let body: { name: string; email?: string; thumbnail_url?: string };
     try { body = await request.json(); } catch { return corsResponse(JSON.stringify({ error: "Invalid JSON" }), 400, undefined, request); }
 
     if (!body.name) return corsResponse(JSON.stringify({ error: "name is required" }), 400, undefined, request);
@@ -2359,8 +2359,8 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
           templateId: spTemplateId,
           values: {
             member: body.name,
-            subtitle: body.subtitle ?? companyName,
-            level: body.level ?? "Miembro",
+            subtitle: companyName,
+            level: "Miembro",
             "Ultimo Mensaje": "",
             Mensaje: "",
             webchat: webchatUrl,
@@ -2385,7 +2385,7 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
         pass_type_id: companyEnv.SMARTPASSES_PASS_TYPE_ID,
         owner_name: body.name,
         owner_email: body.email ?? null,
-        role: body.level ?? "Miembro",
+        role: "Miembro",
         install_url: installUrl,
       });
 
