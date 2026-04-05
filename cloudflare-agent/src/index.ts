@@ -3268,6 +3268,49 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
     return corsResponse(JSON.stringify({ messages: rows.results ?? [] }), 200, undefined, request);
   }
 
+  // ── Branding (publico, sin auth) ────────────────────────────────────────
+
+  const brandingMatch = pathname.match(/^\/api\/company\/([^/]+)\/branding$/);
+  if (request.method === "GET" && brandingMatch) {
+    const slug = brandingMatch[1];
+    const company = await env.DB.prepare(
+      `SELECT name, slug, industry, logo_url, brand_color, welcome_message, chat_avatar_url FROM companies WHERE slug = ?`
+    ).bind(slug).first<{ name: string; slug: string; industry: string | null; logo_url: string | null; brand_color: string | null; welcome_message: string | null; chat_avatar_url: string | null }>();
+
+    if (!company) return corsResponse(JSON.stringify({ error: "Empresa no encontrada" }), 404, undefined, request);
+
+    return corsResponse(JSON.stringify({
+      name: company.name,
+      slug: company.slug,
+      industry: company.industry,
+      logo_url: company.logo_url,
+      brand_color: company.brand_color ?? "#6366f1",
+      welcome_message: company.welcome_message ?? `Hola! Soy el asistente de ${company.name}. ¿En qué puedo ayudarte?`,
+      chat_avatar_url: company.chat_avatar_url,
+    }), 200, undefined, request);
+  }
+
+  // POST /api/settings/branding — actualizar branding
+  if (request.method === "POST" && pathname === "/api/settings/branding") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    let body: { logo_url?: string; brand_color?: string; welcome_message?: string; chat_avatar_url?: string };
+    try { body = await request.json(); } catch { return corsResponse(JSON.stringify({ error: "JSON inválido" }), 400, undefined, request); }
+
+    await env.DB.prepare(
+      `UPDATE companies SET
+        logo_url = COALESCE(?, logo_url),
+        brand_color = COALESCE(?, brand_color),
+        welcome_message = COALESCE(?, welcome_message),
+        chat_avatar_url = COALESCE(?, chat_avatar_url),
+        updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`
+    ).bind(body.logo_url ?? null, body.brand_color ?? null, body.welcome_message ?? null, body.chat_avatar_url ?? null, user.company_id).run();
+
+    return corsResponse(JSON.stringify({ ok: true }), 200, undefined, request);
+  }
+
   // ── LLM API Keys (BYOK) ─────────────────────────────────────────────────
 
   // GET /api/settings/llm-keys — check which keys are configured
