@@ -2,8 +2,53 @@ import type { Env } from "./types";
 
 const BASE_URL = "https://pass.smartpasses.io/api/v1";
 
+// ── Credenciales por empresa o globales ──────────────────────────────────
+
+interface SmartPassCreds {
+  apiKey: string;
+  passTypeId: string;
+  templateId: string;
+}
+
+export async function getSmartPassCreds(env: Env, companyId?: number): Promise<SmartPassCreds> {
+  // 1. Buscar credenciales asignadas a la empresa
+  if (companyId) {
+    const row = await env.DB.prepare(
+      `SELECT access_token, extra_data FROM integrations WHERE company_id = ? AND provider = 'smartpasses' AND is_active = 1`
+    ).bind(companyId).first<{ access_token: string; extra_data: string | null }>();
+
+    if (row) {
+      let extra: Record<string, string> = {};
+      try { extra = row.extra_data ? JSON.parse(row.extra_data) : {}; } catch { /* */ }
+      return {
+        apiKey: row.access_token,
+        passTypeId: extra.pass_type_id ?? env.SMARTPASSES_PASS_TYPE_ID,
+        templateId: (extra.pass_template_id ?? env.SMARTPASSES_PASS_TEMPLATE_ID).replace("passtemplates:", ""),
+      };
+    }
+  }
+
+  // 2. Fallback: credenciales globales del env
+  return {
+    apiKey: env.SMARTPASSES_API_KEY,
+    passTypeId: env.SMARTPASSES_PASS_TYPE_ID,
+    templateId: env.SMARTPASSES_PASS_TEMPLATE_ID.replace("passtemplates:", ""),
+  };
+}
+
+/** Crea un env override con las credenciales de la empresa */
+export async function withCompanyCreds(env: Env, companyId?: number): Promise<Env> {
+  if (!companyId) return env;
+  const creds = await getSmartPassCreds(env, companyId);
+  return {
+    ...env,
+    SMARTPASSES_API_KEY: creds.apiKey,
+    SMARTPASSES_PASS_TYPE_ID: creds.passTypeId,
+    SMARTPASSES_PASS_TEMPLATE_ID: creds.templateId,
+  };
+}
+
 function getTemplateId(env: Env): string {
-  // SMARTPASSES_PASS_TEMPLATE_ID stored as "passtemplates:5389981445259264"
   return env.SMARTPASSES_PASS_TEMPLATE_ID.replace("passtemplates:", "");
 }
 

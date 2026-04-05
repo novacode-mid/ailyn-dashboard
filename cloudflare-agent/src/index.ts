@@ -1,7 +1,7 @@
 import { runAdminChat, runChat, runDynamicChat, runDynamicChatWithResults, runReasoningWithTools } from "./ai";
 import type { ToolCall, ToolResult } from "./ai";
 import { createCompany, createTask, createWalletPass, deleteAgent, deleteCompany, deleteKnowledgeDoc, getAgentProfile, getAgentProfileById, getAgentProfileBySlug, getAgentStats, getCompanyDetail, getCompanyMetrics, getGlobalMetrics, getLeadById, getNextPendingTask, getUnattendedLeads, getUserBySmartpassId, getUserByTelegramId, insertKnowledgeDoc, isEmailAlreadySaved, listAgentsWithSkills, listCompaniesWithStats, listKnowledgeDocs, listLeads, listMonitoredEmails, listSkills, listWalletPasses, logAudit, markLeadNotified, saveLead, saveMonitoredEmail, saveChatMessage, getChatHistory, countRecentMessages, updateAgent, updateCompany, updateTaskStatus, updateWalletPassInstalled, updateWalletPassUrl, upsertAgentWithSkills, upsertUser } from "./d1";
-import { createPass, emailPass, notifyViaPass } from "./smartpass";
+import { createPass, emailPass, notifyViaPass, withCompanyCreds } from "./smartpass";
 import { proposeAction, approveAction, rejectAction, closeLeadActions } from "./action-engine";
 import { runLLM } from "./llm-router";
 import { analyzeEmail, fetchRecentEmails } from "./email-monitor";
@@ -2361,7 +2361,8 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
     if (!body.serial_number || !body.email) return corsResponse(JSON.stringify({ error: "serial_number and email required" }), 400, undefined, request);
 
     try {
-      await emailPass(env, body.serial_number, body.email);
+      const companyEnv = await withCompanyCreds(env, user.company_id);
+      await emailPass(companyEnv, body.serial_number, body.email);
       return corsResponse(JSON.stringify({ ok: true }), 200, undefined, request);
     } catch (err) {
       return corsResponse(JSON.stringify({ error: String(err) }), 500, undefined, request);
@@ -2376,11 +2377,12 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
     const body = await request.json() as { title: string; message: string };
     if (!body.title || !body.message) return corsResponse(JSON.stringify({ error: "title and message required" }), 400, undefined, request);
 
+    const companyEnv = await withCompanyCreds(env, user.company_id);
     const passes = await listWalletPasses(env, user.company_id, 100);
     let sent = 0;
     for (const pass of passes) {
       try {
-        await notifyViaPass(env, pass.serial_number, { header: body.title, secondary: body.message });
+        await notifyViaPass(companyEnv, pass.serial_number, { header: body.title, secondary: body.message });
         sent++;
       } catch { /* skip failed */ }
     }
@@ -3266,6 +3268,58 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
        FROM conversation_history WHERE company_id = ? AND session_id = ? ORDER BY created_at ASC LIMIT 200`
     ).bind(user.company_id, sessionId).all();
     return corsResponse(JSON.stringify({ messages: rows.results ?? [] }), 200, undefined, request);
+  }
+
+  // ── Admin: SmartPasses credentials por empresa ──────────────────────────
+
+  // GET /api/admin/smartpasses/list — ver credenciales asignadas
+  if (request.method === "GET" && pathname === "/api/admin/smartpasses/list") {
+    const auth = request.headers.get("X-CF-Token") ?? "";
+    if (auth !== env.CLOUDFLARE_ADMIN_TOKEN) return corsResponse(JSON.stringify({ error: "Unauthorized" }), 401, undefined, request);
+
+    const rows = await env.DB.prepare(
+      `SELECT i.company_id, c.name as company_name, i.extra_data, i.is_active, i.updated_at
+       FROM integrations i JOIN companies c ON c.id = i.company_id
+       WHERE i.provider = 'smartpasses'
+       ORDER BY i.updated_at DESC`
+    ).all();
+    return corsResponse(JSON.stringify({ credentials: rows.results ?? [] }), 200, undefined, request);
+  }
+
+  // POST /api/admin/smartpasses/assign — asignar credenciales a empresa
+  if (request.method === "POST" && pathname === "/api/admin/smartpasses/assign") {
+    const auth = request.headers.get("X-CF-Token") ?? "";
+    if (auth !== env.CLOUDFLARE_ADMIN_TOKEN) return corsResponse(JSON.stringify({ error: "Unauthorized" }), 401, undefined, request);
+
+    let body: { company_id?: number; api_key?: string; pass_type_id?: string; pass_template_id?: string };
+    try { body = await request.json(); } catch { return corsResponse(JSON.stringify({ error: "JSON inválido" }), 400, undefined, request); }
+
+    if (!body.company_id || !body.api_key || !body.pass_type_id || !body.pass_template_id) {
+      return corsResponse(JSON.stringify({ error: "company_id, api_key, pass_type_id, pass_template_id requeridos" }), 400, undefined, request);
+    }
+
+    await saveIntegration(env, body.company_id, "smartpasses", body.api_key, {
+      pass_type_id: body.pass_type_id,
+      pass_template_id: body.pass_template_id,
+    });
+
+    return corsResponse(JSON.stringify({ ok: true }), 200, undefined, request);
+  }
+
+  // DELETE /api/admin/smartpasses/revoke — revocar credenciales
+  if (request.method === "DELETE" && pathname === "/api/admin/smartpasses/revoke") {
+    const auth = request.headers.get("X-CF-Token") ?? "";
+    if (auth !== env.CLOUDFLARE_ADMIN_TOKEN) return corsResponse(JSON.stringify({ error: "Unauthorized" }), 401, undefined, request);
+
+    let body: { company_id?: number };
+    try { body = await request.json(); } catch { return corsResponse(JSON.stringify({ error: "JSON inválido" }), 400, undefined, request); }
+
+    if (!body.company_id) return corsResponse(JSON.stringify({ error: "company_id requerido" }), 400, undefined, request);
+
+    await env.DB.prepare(
+      `UPDATE integrations SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE company_id = ? AND provider = 'smartpasses'`
+    ).bind(body.company_id).run();
+    return corsResponse(JSON.stringify({ ok: true }), 200, undefined, request);
   }
 
   // ── Branding (publico, sin auth) ────────────────────────────────────────
