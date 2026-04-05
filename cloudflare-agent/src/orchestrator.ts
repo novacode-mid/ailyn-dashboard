@@ -218,7 +218,7 @@ async function callOpenAIModel(
 
 // ── System prompt ──────────────────────────────────────────────────────────
 
-function buildSystemPrompt(input: OrchestratorInput, toolContext: string, memoryContext = "", useCodeMode = false, summaryContext = ""): string {
+function buildSystemPrompt(input: OrchestratorInput, toolContext: string, memoryContext = "", useCodeMode = false, summaryContext = "", mcpSkillNames: string[] = []): string {
   const now = new Date().toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
 
   // Add conversation context summary for reference resolution
@@ -270,6 +270,12 @@ ${(() => {
   const notConnected = allProviders.filter(p => !cp.includes(p)).map(p => `- ❌ ${descriptions[p] ?? p} (no conectada)`).join("\n");
   return `\n## Integraciones de esta empresa\nConectadas:\n${connected}\n${notConnected ? `\nNo conectadas:\n${notConnected}` : ""}\nSi el usuario pregunta qué integraciones tiene, responde SOLO las conectadas (✅). Las no conectadas, menciónalas como disponibles para conectar en Configuración.\nUSA las integraciones conectadas activamente cuando el contexto lo amerite.`;
 })()}
+${mcpSkillNames.length > 0 ? `
+## Skills MCP instalados
+Esta empresa tiene ${mcpSkillNames.length} skills adicionales de servidores MCP:
+${mcpSkillNames.map(s => `- ${s.replace("mcp_", "").replace(/_/g, " ")}`).join("\n")}
+Cuando el usuario pida algo relacionado con estos skills, USALOS. Son herramientas reales conectadas que ejecutan acciones.
+Si el usuario pregunta qué puedes hacer, incluye estas capacidades en tu respuesta.` : ""}
 
 ## Reglas de autonomía
 - Para ENVIAR emails: siempre redacta el draft con el marcador. El sistema mostrará botones de aprobación al usuario.
@@ -506,14 +512,17 @@ export async function orchestrate(
     return false;
   });
 
-  // Ejecutar tools, cargar memoria, y cargar contexto inteligente EN PARALELO
-  const [toolResults, memoryContext, smartContext] = await Promise.all([
+  // Ejecutar tools, cargar memoria, contexto, y MCP skills EN PARALELO
+  const [toolResults, memoryContext, smartContext, mcpSkillRows] = await Promise.all([
     allowedTools[0] !== "none" && allowedTools.length > 0
       ? executeTools(allowedTools as typeof routing.tools_needed, ctx, env)
       : Promise.resolve([]),
     loadMemory(env, input.companyId),
     loadSmartContext(env, input.companyId, input.sessionId),
+    env.DB.prepare(`SELECT skill_name, description FROM mcp_skills WHERE company_id = ? AND is_active = 1 LIMIT 20`)
+      .bind(input.companyId).all<{ skill_name: string; description: string }>().catch(() => ({ results: [] as { skill_name: string; description: string }[] })),
   ]);
+  const mcpSkillNames = (mcpSkillRows.results ?? []).map(s => s.skill_name);
 
   // Extraer entidades del mensaje del usuario (async, no bloquea)
   saveEntitiesAsMemory(env, input.companyId, cleanMessage, "user").catch(() => {});
@@ -527,7 +536,7 @@ export async function orchestrate(
 
   // 4. Generar respuesta con el modelo seleccionado
   const useCodeMode = shouldUseCodeMode(routing.tools_needed);
-  const systemPrompt = buildSystemPrompt(input, toolContext, memoryContext, useCodeMode, smartContext.summaryContext);
+  const systemPrompt = buildSystemPrompt(input, toolContext, memoryContext, useCodeMode, smartContext.summaryContext, mcpSkillNames);
   const history = smartContext.history;
 
   let responseText: string;
