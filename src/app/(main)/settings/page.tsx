@@ -692,79 +692,86 @@ export default function SettingsPage() {
         })}
 
         {/* ── Servidores MCP ───────────────────────────────────── */}
-        <h2 className="text-lg font-bold text-white pt-2">Servidores MCP</h2>
-        <p className="text-gray-500 text-xs -mt-4">Conecta cualquier servidor MCP y sus tools se convierten en Skills automaticamente</p>
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-medium text-white">Servidores MCP</h2>
+              <p className="text-gray-500 text-[11px] mt-0.5">Conecta MCPs y sus tools se convierten en Skills</p>
+            </div>
+            <span className="text-xs text-gray-500">{mcpServers.filter(s => s.is_active).length} conectados</span>
+          </div>
 
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-4">
-          <form onSubmit={handleMcpConnect} className="space-y-2">
+          {/* Formulario inline compacto */}
+          <form onSubmit={handleMcpConnect} className="flex gap-2">
             <input
               type="url"
               value={mcpUrl}
               onChange={(e) => setMcpUrl(e.target.value)}
-              placeholder="URL del servidor MCP (ej: https://mcp.example.com/sse)"
+              placeholder="URL del servidor MCP..."
               required
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 font-mono"
+              className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 font-mono"
             />
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={mcpName}
-                onChange={(e) => setMcpName(e.target.value)}
-                placeholder="Nombre (opcional)"
-                className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400"
-              />
-              <button
-                type="submit"
-                disabled={mcpLoading || !mcpUrl.trim()}
-                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
-              >
-                {mcpLoading ? "Escaneando..." : "Conectar MCP"}
-              </button>
-            </div>
+            <input
+              type="text"
+              value={mcpName}
+              onChange={(e) => setMcpName(e.target.value)}
+              placeholder="Nombre"
+              className="w-28 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-400"
+            />
+            <button
+              type="submit"
+              disabled={mcpLoading || !mcpUrl.trim()}
+              className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors whitespace-nowrap"
+            >
+              {mcpLoading ? "..." : "+ Conectar"}
+            </button>
           </form>
           {mcpError && <p className="text-red-400 text-xs">{mcpError}</p>}
-        </div>
 
-        {mcpServers.filter(s => s.is_active).map((server) => (
-          <div key={server.id} className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-400" />
-                <span className="text-white text-sm font-medium">{server.name}</span>
-                <span className="text-gray-500 text-xs">({server.skills_count} skills)</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setMcpExpanded(mcpExpanded === server.id ? null : server.id)}
-                  className="text-xs text-purple-400 hover:text-purple-300"
-                >
-                  {mcpExpanded === server.id ? "Ocultar" : "Ver skills"}
-                </button>
-                <button
-                  onClick={() => handleMcpDisconnect(server.id)}
-                  className="text-xs text-red-500 hover:text-red-300"
-                >
-                  Desconectar
-                </button>
-              </div>
-            </div>
-            <p className="text-gray-500 text-xs font-mono">{server.url}</p>
-            {server.last_scan_at && (
-              <p className="text-gray-600 text-xs">Ultimo escaneo: {new Date(server.last_scan_at).toLocaleString("es-MX")}</p>
-            )}
-
-            {mcpExpanded === server.id && (
-              <div className="space-y-1 pt-2 border-t border-gray-800">
-                {mcpSkills.filter(s => s.server_id === server.id).map((skill) => (
-                  <div key={skill.id} className="flex items-center justify-between text-xs py-1">
-                    <span className={skill.is_active ? "text-gray-300" : "text-gray-600 line-through"}>{skill.skill_name}</span>
-                    <span className="text-gray-500">{skill.description.slice(0, 50)}</span>
+          {/* Lista de servers compacta */}
+          {mcpServers.filter(s => s.is_active).length > 0 && (
+            <div className="space-y-1.5 max-h-60 overflow-y-auto">
+              {mcpServers.filter(s => s.is_active).map((server) => (
+                <div key={server.id} className="bg-gray-800/50 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
+                      <span className="text-white text-xs font-medium truncate">{server.name}</span>
+                      <span className="text-purple-400/60 text-[10px] shrink-0">{server.skills_count} skills</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => setMcpExpanded(mcpExpanded === server.id ? null : server.id)}
+                        className="text-[10px] text-purple-400 hover:text-purple-300"
+                      >
+                        {mcpExpanded === server.id ? "▲" : "▼"}
+                      </button>
+                      <button
+                        onClick={() => handleMcpDisconnect(server.id)}
+                        className="text-[10px] text-red-500 hover:text-red-300"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+
+                  {mcpExpanded === server.id && (
+                    <div className="mt-2 pt-2 border-t border-gray-700/50 space-y-1">
+                      <p className="text-gray-500 text-[10px] font-mono truncate">{server.url}</p>
+                      {mcpSkills.filter(s => s.server_id === server.id).map((skill) => (
+                        <div key={skill.id} className="flex items-center gap-2 text-[11px] py-0.5">
+                          <span className="text-purple-400/40">●</span>
+                          <span className={skill.is_active ? "text-gray-300" : "text-gray-600 line-through"}>{skill.skill_name.replace("mcp_", "")}</span>
+                          <span className="text-gray-600 truncate">{skill.description.slice(0, 40)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Infraestructura */}
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-2">
