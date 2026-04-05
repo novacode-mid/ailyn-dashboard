@@ -132,13 +132,16 @@ export async function loadSmartContext(
      ORDER BY created_at DESC LIMIT ?`
   ).bind(companyId, recentLimit).all<{ role: string; content: string }>();
 
-  const history = (recentRows.results ?? [])
-    .reverse()
-    .map(r => ({
-      role: r.role as "user" | "assistant",
-      // Truncar respuestas del assistant agresivamente para evitar que Sonnet las repita
-      content: r.role === "assistant" ? r.content.slice(0, 100) + (r.content.length > 100 ? "..." : "") : r.content,
-    }));
+  const allMessages = (recentRows.results ?? []).reverse();
+
+  // Solo incluir las respuestas del assistant como resumen minimo
+  // para que el LLM sepa que ya respondio, pero sin datos que pueda repetir
+  const history = allMessages.map(r => ({
+    role: r.role as "user" | "assistant",
+    content: r.role === "assistant"
+      ? "[Respuesta anterior — no repetir su contenido]"
+      : r.content,
+  }));
 
   // 2. Buscar resumen existente en KV
   const summaryKey = `conv_summary:${companyId}`;
