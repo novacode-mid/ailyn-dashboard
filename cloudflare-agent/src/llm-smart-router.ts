@@ -419,12 +419,21 @@ export async function route(
   // Detectar si estamos en medio de una acción (email, calendario, etc.)
   const convContext = detectConversationContext(history);
 
-  // Free tier: siempre Llama, pero SÍ detectar herramientas por keywords (gratis, no usa LLM)
+  // Free tier: siempre Llama, pero SÍ detectar herramientas por keywords + Vectorize
   if (forceFree) {
     const preDetected = preDetectTools(rawMessage, connectedProviders, mcpSkills);
+    // Semantic MCP search for free tier too
+    if (mcpSkills.length > 0 && preDetected.tools.filter(t => t.startsWith("mcp_")).length === 0) {
+      try {
+        const semanticMcp = await findRelevantSkills(rawMessage, connectedProviders, env, 2, 0.40);
+        for (const skill of semanticMcp.filter(s => s.startsWith("mcp_"))) {
+          if (!preDetected.tools.includes(skill)) preDetected.tools.push(skill);
+        }
+      } catch { /* */ }
+    }
     const tools: AvailableTool[] = preDetected.tools.length > 0 ? preDetected.tools : ["none"];
     const complexity: TaskComplexity = (preDetected.tools.length > 0 || convContext.hasPendingAction) ? "medium" : "simple";
-    const m = MODEL_MAP.simple; // Siempre Llama para free tier
+    const m = MODEL_MAP.simple;
     return {
       routing: {
         complexity,
@@ -460,31 +469,44 @@ export async function route(
   // Pre-detección por keywords antes del LLM (más confiable para acciones explícitas)
   const preDetected = preDetectTools(rawMessage, connectedProviders, mcpSkills);
 
-  // Optimization: skip Llama for short simple messages
-  // BUT: longer messages without detected tools might have complex intent → elevate to medium
+  // SIEMPRE buscar MCP skills en Vectorize (busqueda semantica)
+  // Esto es lo que permite escalar sin keywords hardcodeados
+  if (mcpSkills.length > 0 && preDetected.tools.filter(t => t.startsWith("mcp_")).length === 0) {
+    try {
+      const semanticMcp = await findRelevantSkills(rawMessage, connectedProviders, env, 2, 0.40);
+      const mcpResults = semanticMcp.filter(s => s.startsWith("mcp_"));
+      for (const skill of mcpResults) {
+        if (!preDetected.tools.includes(skill)) {
+          preDetected.tools.push(skill);
+        }
+      }
+    } catch { /* Vectorize unavailable */ }
+  }
+
+  // Optimization: skip Llama for short simple messages (but NOT if MCP skills detected)
+  const hasMcpTools = preDetected.tools.some(t => t.startsWith("mcp_"));
   const shortSimple = rawMessage.length < 30 && preDetected.tools.length === 0 && !convContext.hasPendingAction;
   const longAmbiguous = rawMessage.length > 80 && preDetected.tools.length === 0 && !convContext.hasPendingAction;
 
-  // Long ambiguous messages → try semantic skill detection first, then Sonnet
+  // If MCP skills were found, go to medium complexity
+  if (hasMcpTools && preDetected.tools.length > 0) {
+    const m = MODEL_MAP.medium;
+    // Remove generic tools that conflict with MCP
+    const mcpTools = preDetected.tools.filter(t => t.startsWith("mcp_") || (t !== "make_trigger" && t !== "save_note" && t !== "web_search"));
+    return {
+      routing: {
+        complexity: "medium" as TaskComplexity,
+        model: m.model,
+        provider: m.provider,
+        tools_needed: mcpTools as AvailableTool[],
+        estimated_cost: m.cost,
+      },
+      cleanMessage: rawMessage,
+    };
+  }
+
+  // Long ambiguous → Sonnet
   if (longAmbiguous) {
-    try {
-      const semanticSkills = await findRelevantSkills(rawMessage, connectedProviders, env, 2, 0.55);
-      if (semanticSkills.length > 0) {
-        const m = MODEL_MAP.medium;
-        return {
-          routing: {
-            complexity: "medium" as TaskComplexity,
-            model: m.model,
-            provider: m.provider,
-            tools_needed: semanticSkills as AvailableTool[],
-            estimated_cost: m.cost,
-          },
-          cleanMessage: rawMessage,
-        };
-      }
-    } catch {
-      // Vectorize query failed — fall through to Sonnet
-    }
     const m = MODEL_MAP.medium;
     return {
       routing: {
