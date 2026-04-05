@@ -120,7 +120,7 @@ export async function loadSmartContext(
   env: Env,
   companyId: number,
   sessionId: string,
-  recentLimit = 6
+  recentLimit = 4
 ): Promise<{
   history: { role: "user" | "assistant"; content: string }[];
   summaryContext: string;
@@ -136,8 +136,8 @@ export async function loadSmartContext(
     .reverse()
     .map(r => ({
       role: r.role as "user" | "assistant",
-      // Truncar respuestas del assistant para evitar repetición
-      content: r.role === "assistant" ? r.content.slice(0, 300) : r.content,
+      // Truncar respuestas del assistant agresivamente para evitar que Sonnet las repita
+      content: r.role === "assistant" ? r.content.slice(0, 100) + (r.content.length > 100 ? "..." : "") : r.content,
     }));
 
   // 2. Buscar resumen existente en KV
