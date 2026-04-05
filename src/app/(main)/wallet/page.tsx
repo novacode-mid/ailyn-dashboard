@@ -103,12 +103,12 @@ export default function WalletPage() {
     setCreating(true);
     setCreateResult(null);
     try {
-      const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
       const res = await fetch(`${WORKER_URL}/api/wallet/create-pass`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
-          name: fullName,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
           email: email.trim() || undefined,
           thumbnail_url: thumbnailUrl || undefined,
         }),

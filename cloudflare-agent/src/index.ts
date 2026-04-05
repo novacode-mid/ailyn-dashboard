@@ -2312,10 +2312,12 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
     const user = await authenticateUser(request, env);
     if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
 
-    let body: { name: string; email?: string; thumbnail_url?: string };
+    let body: { name?: string; first_name?: string; last_name?: string; email?: string; thumbnail_url?: string };
     try { body = await request.json(); } catch { return corsResponse(JSON.stringify({ error: "Invalid JSON" }), 400, undefined, request); }
 
-    if (!body.name) return corsResponse(JSON.stringify({ error: "name is required" }), 400, undefined, request);
+    const firstName = body.first_name ?? body.name?.split(" ")[0] ?? "";
+    const lastName = body.last_name ?? body.name?.split(" ").slice(1).join(" ") ?? "";
+    if (!firstName) return corsResponse(JSON.stringify({ error: "name is required" }), 400, undefined, request);
 
     // Check passes limit
     const spCreds = await env.DB.prepare(
@@ -2347,7 +2349,8 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
       const spApiKey = companyEnv.SMARTPASSES_API_KEY;
       const spTemplateId = companyEnv.SMARTPASSES_PASS_TEMPLATE_ID.replace("passtemplates:", "");
 
-      // Crear pase con la nueva API
+      // Crear pase con la API de SmartPasses
+      const fullName = `${firstName} ${lastName}`.trim();
       const webchatUrl = `https://ailyn-dashboard.pages.dev/chat/${companySlug}`;
       const passRes = await fetch(`https://wallet-pass-worker.novacodepro.workers.dev/api/passes`, {
         method: "POST",
@@ -2358,16 +2361,21 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
         body: JSON.stringify({
           templateId: spTemplateId,
           values: {
-            member: body.name,
+            member: fullName,
             subtitle: companyName,
             level: "Miembro",
             "Ultimo Mensaje": "",
             Mensaje: "",
             webchat: webchatUrl,
+            nombre: firstName,
+            apellido: lastName,
+            email: body.email ?? "",
           },
-          images: body.thumbnail_url ? {
-            thumbnail: { url: body.thumbnail_url },
-          } : undefined,
+          ...(body.thumbnail_url ? {
+            images: {
+              "thumbnail@2x": { url: body.thumbnail_url },
+            },
+          } : {}),
         }),
       });
 
@@ -2383,7 +2391,7 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
       const dbId = await createWalletPass(env, user.company_id, {
         serial_number: serialNumber,
         pass_type_id: companyEnv.SMARTPASSES_PASS_TYPE_ID,
-        owner_name: body.name,
+        owner_name: fullName,
         owner_email: body.email ?? null,
         role: "Miembro",
         install_url: installUrl,
