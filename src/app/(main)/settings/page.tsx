@@ -380,12 +380,39 @@ export default function SettingsPage() {
     router.replace("/login");
   }
 
+  const [settingsTab, setSettingsTab] = useState<"cuenta" | "ia" | "canales" | "integraciones" | "mcp">("cuenta");
+
+  const SETTINGS_TABS = [
+    { id: "cuenta" as const, label: "Cuenta", icon: "👤" },
+    { id: "ia" as const, label: "Tu IA", icon: "🧠" },
+    { id: "canales" as const, label: "Canales", icon: "📱" },
+    { id: "integraciones" as const, label: "Integraciones", icon: "🔌" },
+    { id: "mcp" as const, label: "MCP", icon: "⚡" },
+  ];
+
   return (
     <DashboardShell>
-      <div className="p-4 sm:p-6 max-w-xl space-y-6">
-        <h1 className="text-xl font-bold text-white">Configuración</h1>
+      <div className="p-4 sm:p-6 max-w-2xl space-y-5">
+        <h1 className="text-xl font-bold text-white">Configuracion</h1>
 
-        {/* Cuenta */}
+        {/* Tabs */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
+          {SETTINGS_TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setSettingsTab(t.id)}
+              className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg whitespace-nowrap transition-colors ${
+                settingsTab === t.id ? "bg-purple-500/20 text-purple-300 border border-purple-500/30" : "bg-white/[0.04] text-gray-400 border border-white/[0.06] hover:text-white"
+              }`}
+            >
+              <span>{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── TAB: Cuenta ──────────────────────────────────────── */}
+        {settingsTab === "cuenta" && <>
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-3">
           <h2 className="text-sm font-medium text-white">Mi cuenta</h2>
           <div className="space-y-2 text-sm">
@@ -404,8 +431,27 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* ── API Keys de LLM ─────────────────────────────────── */}
-        <h2 className="text-lg font-bold text-white pt-2">Tu IA</h2>
+        {/* Infraestructura */}
+        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-2">
+          <h2 className="text-sm font-medium text-white">Infraestructura</h2>
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between">
+              <span className="text-gray-500">Worker</span>
+              <span className="text-gray-400 font-mono text-[11px]">ailyn-agent.novacodepro.workers.dev</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Dashboard</span>
+              <span className="text-gray-400 font-mono text-[11px]">ailyn-dashboard.pages.dev</span>
+            </div>
+          </div>
+        </div>
+
+        <button onClick={handleLogout} className="text-sm text-red-500 hover:text-red-300 transition-colors">Cerrar sesion</button>
+        </>}
+
+        {/* ── TAB: Tu IA ───────────────────────────────────────── */}
+        {settingsTab === "ia" && <>
+        <h2 className="text-lg font-bold text-white">Tu IA</h2>
         <p className="text-gray-500 text-xs -mt-4">Conecta tu propia cuenta de Claude o GPT para potencia ilimitada</p>
 
         {keysSaved && <p className="text-green-400 text-xs">API key guardada correctamente</p>}
@@ -478,6 +524,10 @@ export default function SettingsPage() {
           )}
         </div>
 
+        </>}
+
+        {/* ── TAB: Canales ─────────────────────────────────────── */}
+        {settingsTab === "canales" && <>
         {/* Conectar Telegram */}
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-4">
           <div className="flex items-center justify-between">
@@ -630,8 +680,11 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {/* ── Integraciones ─────────────────────────────────────────── */}
-        <h2 className="text-lg font-bold text-white pt-2">Integraciones</h2>
+        </>}
+
+        {/* ── TAB: Integraciones ───────────────────────────────── */}
+        {settingsTab === "integraciones" && <>
+        <h2 className="text-lg font-bold text-white">Integraciones</h2>
         {intError && <p className="text-red-400 text-xs">{intError}</p>}
 
         {INTEGRATIONS_CONFIG.map((config) => {
@@ -691,7 +744,10 @@ export default function SettingsPage() {
           );
         })}
 
-        {/* ── Servidores MCP ───────────────────────────────────── */}
+        </>}
+
+        {/* ── TAB: MCP ─────────────────────────────────────────── */}
+        {settingsTab === "mcp" && <>
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -773,28 +829,7 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {/* Infraestructura */}
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-2">
-          <h2 className="text-sm font-medium text-white">Infraestructura</h2>
-          <div className="space-y-1 text-xs">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Worker</span>
-              <span className="text-gray-400 font-mono">ailyn-agent.novacodepro.workers.dev</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Dashboard</span>
-              <span className="text-gray-400 font-mono">ailyn-dashboard.pages.dev</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Logout */}
-        <button
-          onClick={handleLogout}
-          className="text-sm text-red-500 hover:text-red-300 transition-colors"
-        >
-          Cerrar sesión
-        </button>
+        </>}
       </div>
     </DashboardShell>
   );
