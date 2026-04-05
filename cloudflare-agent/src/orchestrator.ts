@@ -469,7 +469,7 @@ export async function orchestrate(
   const planProvider = input.forceFree
     ? "cloudflare"
     : await getPlanLLMProvider(env, input.companyId).catch(() => "cloudflare" as const);
-  const forceFree = planProvider === "cloudflare" || (input.forceFree ?? false);
+  const forceFree = (planProvider === "cloudflare") || (input.forceFree ?? false);
 
   // 2. Router: clasificar + seleccionar modelo (con historial para detectar follow-ups)
   const { routing, cleanMessage } = await route(input.message, env, forceFree, input.history ?? [], input.connectedProviders ?? [], input.companyId);
@@ -566,11 +566,21 @@ export async function orchestrate(
   const hasOpenaiKey = !!effectiveEnv.OPENAI_API_KEY;
   const hasGeminiKey = !!effectiveEnv.GOOGLE_AI_API_KEY;
 
-  if ((routing.provider === "anthropic" || routing.provider === "openai") && (hasAnthropicKey || hasOpenaiKey || hasGeminiKey)) {
-    // ── Tool_use nativo (Anthropic, OpenAI, o Gemini) ──
-    const llmProvider = (routing.provider === "anthropic" && hasAnthropicKey) ? "anthropic" as const
-      : (hasOpenaiKey ? "openai" as const
-      : (hasGeminiKey ? "gemini" as const : "anthropic" as const));
+  const canUseTools = hasAnthropicKey || hasOpenaiKey || hasGeminiKey;
+  const wantsTools = routing.provider === "anthropic" || routing.provider === "openai" || planProvider === "gemini";
+
+  if (wantsTools && canUseTools) {
+    // ── Tool_use nativo — elegir el mejor provider disponible ──
+    let llmProvider: "anthropic" | "openai" | "gemini";
+    if (planProvider === "gemini" && hasGeminiKey) {
+      llmProvider = "gemini"; // Plan dice Gemini, usar Gemini
+    } else if (hasAnthropicKey) {
+      llmProvider = "anthropic"; // Anthropic es el premium
+    } else if (hasOpenaiKey) {
+      llmProvider = "openai";
+    } else {
+      llmProvider = "gemini"; // Fallback a Gemini (gratis)
+    }
     try {
       const toolSchemas = await buildToolSchemas(effectiveEnv, input.companyId, input.connectedProviders ?? []);
       const result = await callWithToolUse(systemPrompt, cleanMessage, history, toolSchemas, effectiveEnv, input.companyId, llmProvider);

@@ -199,8 +199,10 @@ export async function checkAgentsLimit(
 export async function getPlanLLMProvider(
   env: Env,
   companyId: number
-): Promise<"cloudflare" | "anthropic"> {
+): Promise<"cloudflare" | "anthropic" | "gemini"> {
   const planSlug = await getCompanyPlanSlug(env, companyId);
   const plan = await getPlan(env, planSlug);
-  return plan.llm_provider === "anthropic" ? "anthropic" : "cloudflare";
+  if (plan.llm_provider === "anthropic") return "anthropic";
+  if (plan.llm_provider === "gemini") return "gemini";
+  return "cloudflare";
 }
