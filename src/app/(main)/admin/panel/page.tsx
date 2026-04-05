@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-type Tab = "overview" | "empresas" | "actividad" | "followups" | "sistema";
+type Tab = "overview" | "empresas" | "actividad" | "followups" | "smartpasses" | "sistema";
 
 interface Company {
   id: number;
@@ -182,6 +182,7 @@ export default function SuperadminPage() {
     { id: "empresas", label: "Empresas" },
     { id: "actividad", label: "Actividad Global" },
     { id: "followups", label: "Follow-ups" },
+    { id: "smartpasses", label: "SmartPasses" },
     { id: "sistema", label: "Sistema" },
   ];
 
@@ -262,6 +263,7 @@ export default function SuperadminPage() {
             )}
             {tab === "actividad" && <ActividadTab actions={recentActions} />}
             {tab === "followups" && <FollowupsTab followups={activeFollowups} />}
+            {tab === "smartpasses" && <SmartPassesTab companies={companies} />}
             {tab === "sistema" && <SistemaTab systemStatus={systemStatus} toggleSystem={toggleSystem} />}
           </>
         )}
@@ -502,6 +504,136 @@ function FollowupsTab({ followups }: { followups: Followup[] }) {
 }
 
 /* ── Tab: Sistema ──────────────────────────────────────────────────────── */
+
+function SmartPassesTab({ companies }: { companies: Company[] }) {
+  const [creds, setCreds] = useState<{ company_id: number; company_name: string; extra_data: string; is_active: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({ company_id: "", api_key: "", pass_type_id: "", pass_template_id: "", passes_limit: "100" });
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    fetch(`${WORKER_URL}/api/admin/smartpasses/list`, { headers: adminHeaders() })
+      .then(r => r.json())
+      .then((d: { credentials?: typeof creds }) => setCreds(d.credentials ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleAssign(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.company_id || !form.api_key || !form.pass_type_id || !form.pass_template_id) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${WORKER_URL}/api/admin/smartpasses/assign`, {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({
+          company_id: Number(form.company_id),
+          api_key: form.api_key,
+          pass_type_id: form.pass_type_id,
+          pass_template_id: form.pass_template_id,
+          passes_limit: Number(form.passes_limit) || 100,
+        }),
+      });
+      if (res.ok) {
+        setMsg("Credenciales asignadas");
+        setForm({ company_id: "", api_key: "", pass_type_id: "", pass_template_id: "", passes_limit: "100" });
+        // Reload
+        const r2 = await fetch(`${WORKER_URL}/api/admin/smartpasses/list`, { headers: adminHeaders() });
+        const d2 = await r2.json() as { credentials?: typeof creds };
+        setCreds(d2.credentials ?? []);
+        setTimeout(() => setMsg(""), 2000);
+      }
+    } catch { setMsg("Error"); }
+    finally { setSaving(false); }
+  }
+
+  async function handleRevoke(companyId: number) {
+    if (!confirm("Revocar credenciales de SmartPasses para esta empresa?")) return;
+    await fetch(`${WORKER_URL}/api/admin/smartpasses/revoke`, {
+      method: "DELETE",
+      headers: adminHeaders(),
+      body: JSON.stringify({ company_id: companyId }),
+    });
+    setCreds(prev => prev.filter(c => c.company_id !== companyId));
+  }
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      <h2 className="text-lg font-semibold">SmartPasses — Tarjetas Digitales</h2>
+      <p className="text-gray-400 text-sm">Asigna credenciales de SmartPasses a cada empresa. Controla cuantas tarjetas puede crear cada una.</p>
+
+      {msg && <p className="text-green-400 text-sm">{msg}</p>}
+
+      {/* Asignar credenciales */}
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
+        <h3 className="text-white text-sm font-medium">Asignar credenciales</h3>
+        <form onSubmit={handleAssign} className="space-y-3">
+          <select
+            value={form.company_id}
+            onChange={e => setForm(f => ({ ...f, company_id: e.target.value }))}
+            required
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400"
+          >
+            <option value="">Seleccionar empresa...</option>
+            {companies.map(c => (
+              <option key={c.id} value={c.id}>{c.name} (ID: {c.id})</option>
+            ))}
+          </select>
+          <input type="password" value={form.api_key} onChange={e => setForm(f => ({ ...f, api_key: e.target.value }))} placeholder="SmartPasses API Key" required className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 font-mono" />
+          <div className="grid grid-cols-2 gap-3">
+            <input type="text" value={form.pass_type_id} onChange={e => setForm(f => ({ ...f, pass_type_id: e.target.value }))} placeholder="Pass Type ID" required className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 font-mono" />
+            <input type="text" value={form.pass_template_id} onChange={e => setForm(f => ({ ...f, pass_template_id: e.target.value }))} placeholder="Template ID" required className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-400 font-mono" />
+          </div>
+          <div className="flex items-center gap-3">
+            <input type="number" value={form.passes_limit} onChange={e => setForm(f => ({ ...f, passes_limit: e.target.value }))} placeholder="Limite de tarjetas" className="w-40 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-400" />
+            <span className="text-gray-500 text-xs">tarjetas maximas</span>
+          </div>
+          <button type="submit" disabled={saving} className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-black text-sm font-semibold px-5 py-2 rounded-lg transition-colors">
+            {saving ? "Asignando..." : "Asignar credenciales"}
+          </button>
+        </form>
+      </div>
+
+      {/* Lista de credenciales asignadas */}
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+        <h3 className="text-white text-sm font-medium mb-3">Credenciales asignadas ({creds.length})</h3>
+        {loading ? (
+          <div className="flex justify-center py-6"><div className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" /></div>
+        ) : creds.length === 0 ? (
+          <p className="text-gray-500 text-xs text-center py-4">Ninguna empresa tiene credenciales asignadas</p>
+        ) : (
+          <div className="space-y-2">
+            {creds.map((c) => {
+              let extra: Record<string, string> = {};
+              try { extra = c.extra_data ? JSON.parse(c.extra_data) : {}; } catch { /* */ }
+              return (
+                <div key={c.company_id} className="flex items-center justify-between bg-gray-800/50 rounded-lg p-3">
+                  <div>
+                    <p className="text-white text-sm font-medium">{c.company_name}</p>
+                    <p className="text-gray-500 text-[11px] font-mono">
+                      Type: {extra.pass_type_id?.slice(0, 15) ?? "—"} · Template: {extra.pass_template_id?.slice(0, 15) ?? "—"}
+                      {extra.passes_limit ? ` · Limite: ${extra.passes_limit}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${c.is_active ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>
+                      {c.is_active ? "Activo" : "Revocado"}
+                    </span>
+                    {c.is_active ? (
+                      <button onClick={() => handleRevoke(c.company_id)} className="text-[11px] text-red-400 hover:text-red-300">Revocar</button>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function SistemaTab({ systemStatus, toggleSystem }: { systemStatus: string; toggleSystem: () => void }) {
   return (

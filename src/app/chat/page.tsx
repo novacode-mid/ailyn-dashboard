@@ -163,7 +163,7 @@ export default function ChatPage() {
   const color = branding.brand_color;
 
   return (
-    <div className="h-screen flex flex-col" style={{ background: "#0a0a0f" }}>
+    <div className="flex flex-col" style={{ background: "#0a0a0f", height: "100dvh", minHeight: "100vh" }}>
       {/* Header */}
       <div className="shrink-0 px-4 sm:px-6 py-3 flex items-center gap-3 border-b border-white/10" style={{ background: `linear-gradient(135deg, ${color}22, ${color}11)` }}>
         {branding.logo_url ? (

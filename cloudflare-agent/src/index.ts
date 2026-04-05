@@ -2317,13 +2317,33 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
 
     if (!body.name) return corsResponse(JSON.stringify({ error: "name is required" }), 400, undefined, request);
 
+    // Check passes limit
+    const spCreds = await env.DB.prepare(
+      `SELECT extra_data FROM integrations WHERE company_id = ? AND provider = 'smartpasses' AND is_active = 1`
+    ).bind(user.company_id).first<{ extra_data: string | null }>();
+    if (spCreds?.extra_data) {
+      try {
+        const extra = JSON.parse(spCreds.extra_data) as { passes_limit?: string };
+        const limit = parseInt(extra.passes_limit ?? "0", 10);
+        if (limit > 0) {
+          const countRow = await env.DB.prepare(
+            `SELECT COUNT(*) as total FROM wallet_passes WHERE company_id = ?`
+          ).bind(user.company_id).first<{ total: number }>();
+          if ((countRow?.total ?? 0) >= limit) {
+            return corsResponse(JSON.stringify({ error: `Has alcanzado el limite de ${limit} tarjetas. Contacta al administrador para ampliar.` }), 403, undefined, request);
+          }
+        }
+      } catch { /* */ }
+    }
+
     try {
       // Get company info for the pass
       const company = await env.DB.prepare(`SELECT name, slug FROM companies WHERE id = ?`).bind(user.company_id).first<{ name: string; slug: string }>();
       const companyName = company?.name ?? "Mi empresa";
       const companySlug = company?.slug ?? "default";
 
-      const passInfo = await createPass(env, {
+      const companyEnv = await withCompanyCreds(env, user.company_id);
+      const passInfo = await createPass(companyEnv, {
         nombre: body.name,
         empresa: companyName,
         email: body.email,
@@ -3291,7 +3311,7 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
     const auth = request.headers.get("X-CF-Token") ?? "";
     if (auth !== env.CLOUDFLARE_ADMIN_TOKEN) return corsResponse(JSON.stringify({ error: "Unauthorized" }), 401, undefined, request);
 
-    let body: { company_id?: number; api_key?: string; pass_type_id?: string; pass_template_id?: string };
+    let body: { company_id?: number; api_key?: string; pass_type_id?: string; pass_template_id?: string; passes_limit?: number };
     try { body = await request.json(); } catch { return corsResponse(JSON.stringify({ error: "JSON inválido" }), 400, undefined, request); }
 
     if (!body.company_id || !body.api_key || !body.pass_type_id || !body.pass_template_id) {
@@ -3301,6 +3321,7 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
     await saveIntegration(env, body.company_id, "smartpasses", body.api_key, {
       pass_type_id: body.pass_type_id,
       pass_template_id: body.pass_template_id,
+      passes_limit: String(body.passes_limit ?? 100),
     });
 
     return corsResponse(JSON.stringify({ ok: true }), 200, undefined, request);
