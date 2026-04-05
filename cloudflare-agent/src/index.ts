@@ -2312,7 +2312,7 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
     const user = await authenticateUser(request, env);
     if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
 
-    let body: { name: string; email?: string; phone?: string };
+    let body: { name: string; email?: string; phone?: string; subtitle?: string; level?: string; thumbnail_url?: string };
     try { body = await request.json(); } catch { return corsResponse(JSON.stringify({ error: "Invalid JSON" }), 400, undefined, request); }
 
     if (!body.name) return corsResponse(JSON.stringify({ error: "name is required" }), 400, undefined, request);
@@ -2342,24 +2342,54 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
       const companyName = company?.name ?? "Mi empresa";
       const companySlug = company?.slug ?? "default";
 
+      // Obtener credenciales de SmartPasses para esta empresa
       const companyEnv = await withCompanyCreds(env, user.company_id);
-      const passInfo = await createPass(companyEnv, {
-        nombre: body.name,
-        empresa: companyName,
-        email: body.email,
-        rol: "Cliente"
+      const spApiKey = companyEnv.SMARTPASSES_API_KEY;
+      const spTemplateId = companyEnv.SMARTPASSES_PASS_TEMPLATE_ID.replace("passtemplates:", "");
+
+      // Crear pase con la nueva API
+      const webchatUrl = `https://ailyn-dashboard.pages.dev/chat/${companySlug}`;
+      const passRes = await fetch(`https://wallet-pass-worker.novacodepro.workers.dev/api/passes`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${spApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          templateId: spTemplateId,
+          values: {
+            member: body.name,
+            subtitle: body.subtitle ?? companyName,
+            level: body.level ?? "Miembro",
+            "Ultimo Mensaje": "",
+            Mensaje: "",
+            webchat: webchatUrl,
+          },
+          images: body.thumbnail_url ? {
+            thumbnail: { url: body.thumbnail_url },
+          } : undefined,
+        }),
       });
+
+      if (!passRes.ok) {
+        const errText = await passRes.text();
+        throw new Error(`SmartPass API error: ${passRes.status} ${errText}`);
+      }
+
+      const passData = await passRes.json() as { id?: string; serialNumber?: string; serial_number?: string; url?: string; shortUrl?: string; installUrl?: string };
+      const serialNumber = String(passData.serialNumber ?? passData.serial_number ?? passData.id ?? "");
+      const installUrl = passData.url ?? passData.shortUrl ?? passData.installUrl ?? null;
 
       const dbId = await createWalletPass(env, user.company_id, {
-        serial_number: passInfo.serialNumber,
-        pass_type_id: passInfo.passTypeIdentifier,
+        serial_number: serialNumber,
+        pass_type_id: companyEnv.SMARTPASSES_PASS_TYPE_ID,
         owner_name: body.name,
         owner_email: body.email ?? null,
-        role: "Cliente",
-        install_url: passInfo.url ?? null,
+        role: body.level ?? "Miembro",
+        install_url: installUrl,
       });
 
-      if (passInfo.url) await updateWalletPassUrl(env, passInfo.serialNumber, passInfo.url);
+      if (installUrl) await updateWalletPassUrl(env, serialNumber, installUrl);
 
       return corsResponse(JSON.stringify({
         ok: true,
@@ -2408,6 +2438,38 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
     }
 
     return corsResponse(JSON.stringify({ ok: true, total: passes.length, sent }), 200, undefined, request);
+  }
+
+  // POST /api/wallet/upload-image — subir imagen para la tarjeta (base64)
+  if (request.method === "POST" && pathname === "/api/wallet/upload-image") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    const body = await request.json() as { image_base64?: string; filename?: string };
+    if (!body.image_base64) return corsResponse(JSON.stringify({ error: "image_base64 requerido" }), 400, undefined, request);
+
+    // Guardar en KV con key unica
+    const imageId = `img-${user.company_id}-${Date.now()}`;
+    await env.KV.put(`wallet_img:${imageId}`, body.image_base64, { expirationTtl: 86400 * 365 }); // 1 año
+
+    const imageUrl = `https://ailyn-agent.novacodepro.workers.dev/api/wallet/image/${imageId}`;
+    return corsResponse(JSON.stringify({ ok: true, image_url: imageUrl, image_id: imageId }), 200, undefined, request);
+  }
+
+  // GET /api/wallet/image/:id — servir imagen guardada
+  const imgMatch = pathname.match(/^\/api\/wallet\/image\/(.+)$/);
+  if (request.method === "GET" && imgMatch) {
+    const imageId = imgMatch[1];
+    const b64 = await env.KV.get(`wallet_img:${imageId}`);
+    if (!b64) return new Response("Not found", { status: 404 });
+
+    // Detectar tipo de imagen del base64
+    const isJpeg = b64.startsWith("/9j/");
+    const isPng = b64.startsWith("iVBOR");
+    const contentType = isPng ? "image/png" : "image/jpeg";
+
+    const binary = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    return new Response(binary, { headers: { "Content-Type": contentType, "Cache-Control": "public, max-age=31536000" } });
   }
 
   // POST /api/wallet/register-device — registrar tipo de dispositivo al instalar

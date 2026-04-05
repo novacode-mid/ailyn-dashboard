@@ -37,6 +37,10 @@ export default function WalletPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [subtitle, setSubtitle] = useState("");
+  const [level, setLevel] = useState("Miembro");
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createResult, setCreateResult] = useState<CreateResult | null>(null);
 
@@ -70,6 +74,31 @@ export default function WalletPage() {
   const iosCount = passes.filter(p => p.device_type === "ios").length;
   const androidCount = passes.filter(p => p.device_type === "android").length;
 
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const reader = new FileReader();
+      const b64 = await new Promise<string>((resolve) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]); // Remove "data:image/...;base64,"
+        };
+        reader.readAsDataURL(file);
+      });
+
+      const res = await fetch(`${WORKER_URL}/api/wallet/upload-image`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ image_base64: b64, filename: file.name }),
+      });
+      const data = await res.json() as { image_url?: string };
+      if (data.image_url) setThumbnailUrl(data.image_url);
+    } catch { /* */ }
+    finally { setUploading(false); }
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
@@ -79,7 +108,14 @@ export default function WalletPage() {
       const res = await fetch(`${WORKER_URL}/api/wallet/create-pass`, {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ holder_name: name.trim(), holder_email: email.trim() || undefined, holder_phone: phone.trim() || undefined }),
+        body: JSON.stringify({
+          holder_name: name.trim(),
+          holder_email: email.trim() || undefined,
+          holder_phone: phone.trim() || undefined,
+          subtitle: subtitle.trim() || undefined,
+          level: level.trim() || "Miembro",
+          thumbnail_url: thumbnailUrl || undefined,
+        }),
       });
       const data = await res.json() as CreateResult;
       if (data.ok) {
@@ -268,7 +304,30 @@ export default function WalletPage() {
               <form onSubmit={handleCreate} className="space-y-3">
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre del cliente *" required className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400" />
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (para enviar tarjeta)" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400" />
-                <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefono (opcional)" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400" />
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Subtitulo (ej: Chatbots AI)" className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400" />
+                  <select value={level} onChange={(e) => setLevel(e.target.value)} className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-purple-400">
+                    <option value="Miembro">Miembro</option>
+                    <option value="VIP">VIP</option>
+                    <option value="Premium">Premium</option>
+                    <option value="Experto">Experto</option>
+                    <option value="Gold">Gold</option>
+                  </select>
+                </div>
+
+                {/* Foto */}
+                <div className="flex items-center gap-3">
+                  {thumbnailUrl ? (
+                    <img src={thumbnailUrl} alt="" className="w-12 h-12 rounded-lg object-cover border border-gray-700" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-500 text-lg">📷</div>
+                  )}
+                  <label className="flex-1">
+                    <span className="text-xs text-purple-400 hover:text-purple-300 cursor-pointer">{uploading ? "Subiendo..." : thumbnailUrl ? "Cambiar foto" : "Subir foto del cliente"}</span>
+                    <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploading} />
+                  </label>
+                </div>
+
                 <button type="submit" disabled={creating || !name.trim()} className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors">
                   {creating ? "Creando..." : "Crear tarjeta"}
                 </button>
