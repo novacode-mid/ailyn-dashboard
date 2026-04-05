@@ -194,15 +194,19 @@ export async function callWithToolUse(
   provider: "anthropic" | "openai" = "anthropic"
 ): Promise<ToolUseResult> {
   // Route to the right provider
+  if (provider === "gemini" && env.GOOGLE_AI_API_KEY) {
+    return callWithToolUseGemini(systemPrompt, userMessage, history, tools, env, companyId);
+  }
   if (provider === "openai" && env.OPENAI_API_KEY) {
     return callWithToolUseOpenAI(systemPrompt, userMessage, history, tools, env, companyId);
   }
 
   const apiKey = env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    // Fallback: try OpenAI if Anthropic not available
+    // Fallback chain: OpenAI → Gemini
     if (env.OPENAI_API_KEY) return callWithToolUseOpenAI(systemPrompt, userMessage, history, tools, env, companyId);
-    throw new Error("No LLM API key configured (ANTHROPIC_API_KEY or OPENAI_API_KEY)");
+    if (env.GOOGLE_AI_API_KEY) return callWithToolUseGemini(systemPrompt, userMessage, history, tools, env, companyId);
+    throw new Error("No LLM API key configured");
   }
 
   const toolsUsed: string[] = [];
@@ -426,6 +430,145 @@ async function callWithToolUseOpenAI(
     text: "He ejecutado varias acciones. ¿Necesitas algo más?",
     toolsUsed,
     model: "gpt-4o",
+    emailDraft,
+    calendarDraft,
+    followupDraft,
+    noteDraft,
+  };
+}
+
+// ── Google Gemini Function Calling ───────────────────────────────────────
+
+async function callWithToolUseGemini(
+  systemPrompt: string,
+  userMessage: string,
+  history: { role: "user" | "assistant"; content: string }[],
+  tools: AnthropicTool[],
+  env: Env,
+  companyId: number
+): Promise<ToolUseResult> {
+  const apiKey = env.GOOGLE_AI_API_KEY ?? env.GOOGLE_CLIENT_ID; // Fallback check
+  if (!apiKey) throw new Error("GOOGLE_AI_API_KEY not configured");
+
+  const toolsUsed: string[] = [];
+  let emailDraft: ToolUseResult["emailDraft"];
+  let calendarDraft: ToolUseResult["calendarDraft"];
+  let followupDraft: ToolUseResult["followupDraft"];
+  let noteDraft: ToolUseResult["noteDraft"];
+
+  // Convert Anthropic tool format to Gemini function declarations
+  const geminiTools = [{
+    functionDeclarations: tools.map(t => ({
+      name: t.name,
+      description: t.description,
+      parameters: {
+        type: "OBJECT" as const,
+        properties: Object.fromEntries(
+          Object.entries(t.input_schema.properties).map(([k, v]) => [k, {
+            type: v.type.toUpperCase(),
+            description: v.description,
+            ...(v.enum ? { enum: v.enum } : {}),
+          }])
+        ),
+        required: t.input_schema.required ?? [],
+      },
+    })),
+  }];
+
+  // Build Gemini messages
+  const contents: { role: string; parts: { text?: string; functionCall?: { name: string; args: Record<string, unknown> }; functionResponse?: { name: string; response: { content: string } } }[] }[] = [
+    ...history.map(m => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    })),
+    { role: "user", parts: [{ text: userMessage }] },
+  ];
+
+  const model = "gemini-2.0-flash";
+
+  for (let iteration = 0; iteration < MAX_TOOL_CALLS + 1; iteration++) {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents,
+        tools: geminiTools,
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: { maxOutputTokens: 2048 },
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      console.error(`[tool-use-gemini] Error ${res.status}: ${err}`);
+      throw new Error(`Gemini API error: ${res.status}`);
+    }
+
+    const data = await res.json() as {
+      candidates: [{
+        content: {
+          role: string;
+          parts: { text?: string; functionCall?: { name: string; args: Record<string, unknown> } }[];
+        };
+        finishReason: string;
+      }];
+    };
+
+    const candidate = data.candidates?.[0];
+    if (!candidate) throw new Error("No Gemini response");
+
+    const parts = candidate.content.parts ?? [];
+    const textParts = parts.filter(p => p.text).map(p => p.text!);
+    const functionCalls = parts.filter(p => p.functionCall);
+
+    // No function calls — done
+    if (candidate.finishReason === "STOP" || functionCalls.length === 0) {
+      return {
+        text: textParts.join("\n"),
+        toolsUsed,
+        model: `gemini-2.0-flash`,
+        emailDraft,
+        calendarDraft,
+        followupDraft,
+        noteDraft,
+      };
+    }
+
+    // Add model response to contents
+    contents.push({ role: "model", parts: candidate.content.parts });
+
+    // Execute function calls
+    const functionResponses: { functionResponse: { name: string; response: { content: string } } }[] = [];
+
+    for (const part of functionCalls) {
+      const fc = part.functionCall!;
+      toolsUsed.push(fc.name);
+
+      console.log(`[tool-use-gemini] Calling: ${fc.name}`);
+      const result = await executeToolCall(fc.name, fc.args, env, companyId, userMessage);
+
+      // Extract drafts
+      try {
+        const parsed = JSON.parse(result);
+        if (parsed.action === "email_draft") emailDraft = parsed;
+        if (parsed.action === "calendar_draft") calendarDraft = parsed;
+        if (parsed.action === "followup_draft") followupDraft = parsed;
+        if (parsed.action === "save_note") noteDraft = parsed;
+      } catch { /* */ }
+
+      functionResponses.push({
+        functionResponse: { name: fc.name, response: { content: result } },
+      });
+    }
+
+    // Add function responses
+    contents.push({ role: "user", parts: functionResponses });
+  }
+
+  return {
+    text: "He ejecutado varias acciones. ¿Necesitas algo más?",
+    toolsUsed,
+    model: "gemini-2.0-flash",
     emailDraft,
     calendarDraft,
     followupDraft,

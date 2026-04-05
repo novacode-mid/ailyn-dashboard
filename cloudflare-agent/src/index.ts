@@ -3394,13 +3394,14 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
     if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
 
     const rows = await env.DB.prepare(
-      `SELECT provider FROM integrations WHERE company_id = ? AND provider IN ('anthropic_key', 'openai_key') AND is_active = 1`
+      `SELECT provider FROM integrations WHERE company_id = ? AND provider IN ('anthropic_key', 'openai_key', 'google_ai_key') AND is_active = 1`
     ).bind(user.company_id).all<{ provider: string }>();
 
     const providers = new Set((rows.results ?? []).map(r => r.provider));
     return corsResponse(JSON.stringify({
       anthropic: providers.has("anthropic_key"),
       openai: providers.has("openai_key"),
+      google_ai: providers.has("google_ai_key"),
     }), 200, undefined, request);
   }
 
@@ -3416,7 +3417,7 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
       return corsResponse(JSON.stringify({ error: "provider y api_key requeridos" }), 400, undefined, request);
     }
 
-    const validProviders = new Set(["anthropic", "openai"]);
+    const validProviders = new Set(["anthropic", "openai", "google_ai"]);
     if (!validProviders.has(body.provider)) {
       return corsResponse(JSON.stringify({ error: "Provider inválido" }), 400, undefined, request);
     }

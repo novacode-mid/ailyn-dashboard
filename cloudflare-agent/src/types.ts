@@ -37,6 +37,8 @@ export interface Env {
   POLAR_ORG_ID?: string;
   // WhatsApp Cloud API (optional)
   WHATSAPP_APP_SECRET?: string;
+  // Google AI (Gemini)
+  GOOGLE_AI_API_KEY?: string;
   // Durable Object: Desktop Tunnel
   DESKTOP_TUNNEL: DurableObjectNamespace;
 }

@@ -549,27 +549,28 @@ export async function orchestrate(
   let toolUseToolsUsed: string[] = [];
 
   // Check for user's own API keys (BYOK) before using global keys
-  const userAnthropicKey = await env.DB.prepare(
-    `SELECT access_token FROM integrations WHERE company_id = ? AND provider = 'anthropic_key' AND is_active = 1`
-  ).bind(input.companyId).first<{ access_token: string }>().catch(() => null);
-  const userOpenaiKey = await env.DB.prepare(
-    `SELECT access_token FROM integrations WHERE company_id = ? AND provider = 'openai_key' AND is_active = 1`
-  ).bind(input.companyId).first<{ access_token: string }>().catch(() => null);
+  const userKeys = await env.DB.prepare(
+    `SELECT provider, access_token FROM integrations WHERE company_id = ? AND provider IN ('anthropic_key', 'openai_key', 'google_ai_key') AND is_active = 1`
+  ).bind(input.companyId).all<{ provider: string; access_token: string }>().catch(() => ({ results: [] as { provider: string; access_token: string }[] }));
 
-  // Override env keys with user's own keys if available
+  const keyMap = new Map((userKeys.results ?? []).map(r => [r.provider, r.access_token]));
+
   const effectiveEnv = {
     ...env,
-    ANTHROPIC_API_KEY: userAnthropicKey?.access_token ?? env.ANTHROPIC_API_KEY,
-    OPENAI_API_KEY: userOpenaiKey?.access_token ?? env.OPENAI_API_KEY,
+    ANTHROPIC_API_KEY: keyMap.get("anthropic_key") ?? env.ANTHROPIC_API_KEY,
+    OPENAI_API_KEY: keyMap.get("openai_key") ?? env.OPENAI_API_KEY,
+    GOOGLE_AI_API_KEY: keyMap.get("google_ai_key") ?? env.GOOGLE_AI_API_KEY,
   } as Env;
 
-  const hasAnthropicKey = !!(userAnthropicKey?.access_token || env.ANTHROPIC_API_KEY);
-  const hasOpenaiKey = !!(userOpenaiKey?.access_token || env.OPENAI_API_KEY);
+  const hasAnthropicKey = !!effectiveEnv.ANTHROPIC_API_KEY;
+  const hasOpenaiKey = !!effectiveEnv.OPENAI_API_KEY;
+  const hasGeminiKey = !!effectiveEnv.GOOGLE_AI_API_KEY;
 
-  if ((routing.provider === "anthropic" || routing.provider === "openai") && (hasAnthropicKey || hasOpenaiKey)) {
-    // ── Tool_use nativo (Anthropic o OpenAI) ──
+  if ((routing.provider === "anthropic" || routing.provider === "openai") && (hasAnthropicKey || hasOpenaiKey || hasGeminiKey)) {
+    // ── Tool_use nativo (Anthropic, OpenAI, o Gemini) ──
     const llmProvider = (routing.provider === "anthropic" && hasAnthropicKey) ? "anthropic" as const
-      : (hasOpenaiKey ? "openai" as const : "anthropic" as const);
+      : (hasOpenaiKey ? "openai" as const
+      : (hasGeminiKey ? "gemini" as const : "anthropic" as const));
     try {
       const toolSchemas = await buildToolSchemas(effectiveEnv, input.companyId, input.connectedProviders ?? []);
       const result = await callWithToolUse(systemPrompt, cleanMessage, history, toolSchemas, effectiveEnv, input.companyId, llmProvider);

@@ -77,10 +77,12 @@ export default function SettingsPage() {
   // ── LLM API Keys state ─────────────────────────────────────────────────
   const [anthropicKey, setAnthropicKey] = useState("");
   const [openaiKey, setOpenaiKey] = useState("");
+  const [googleAiKey, setGoogleAiKey] = useState("");
   const [keysLoading, setKeysLoading] = useState(false);
   const [keysSaved, setKeysSaved] = useState(false);
   const [hasAnthropicKey, setHasAnthropicKey] = useState(false);
   const [hasOpenaiKey, setHasOpenaiKey] = useState(false);
+  const [hasGoogleAiKey, setHasGoogleAiKey] = useState(false);
 
   // ── MCP state ──────────────────────────────────────────────────────────
   const [mcpServers, setMcpServers] = useState<{ id: number; url: string; name: string; skills_count: number; is_active: number; last_scan_at: string | null }[]>([]);
@@ -133,9 +135,10 @@ export default function SettingsPage() {
     // LLM API Keys status
     fetch(`${WORKER_URL}/api/settings/llm-keys`, { headers: authHeaders() })
       .then((r) => r.json())
-      .then((data: { anthropic: boolean; openai: boolean }) => {
+      .then((data: { anthropic: boolean; openai: boolean; google_ai: boolean }) => {
         setHasAnthropicKey(data.anthropic ?? false);
         setHasOpenaiKey(data.openai ?? false);
+        setHasGoogleAiKey(data.google_ai ?? false);
       })
       .catch(() => {});
 
@@ -308,7 +311,7 @@ export default function SettingsPage() {
     setIntForms((prev) => ({ ...prev, [provider]: { ...(prev[provider] ?? {}), [key]: value } }));
   }
 
-  async function handleSaveLlmKey(provider: "anthropic" | "openai", key: string) {
+  async function handleSaveLlmKey(provider: "anthropic" | "openai" | "google_ai", key: string) {
     if (!key.trim()) return;
     setKeysLoading(true);
     try {
@@ -320,6 +323,7 @@ export default function SettingsPage() {
       if (res.ok) {
         if (provider === "anthropic") { setHasAnthropicKey(true); setAnthropicKey(""); }
         if (provider === "openai") { setHasOpenaiKey(true); setOpenaiKey(""); }
+        if (provider === "google_ai") { setHasGoogleAiKey(true); setGoogleAiKey(""); }
         setKeysSaved(true);
         setTimeout(() => setKeysSaved(false), 2000);
       }
@@ -327,7 +331,7 @@ export default function SettingsPage() {
     finally { setKeysLoading(false); }
   }
 
-  async function handleRemoveLlmKey(provider: "anthropic" | "openai") {
+  async function handleRemoveLlmKey(provider: "anthropic" | "openai" | "google_ai") {
     if (!confirm(`¿Remover tu API key de ${provider === "anthropic" ? "Anthropic" : "OpenAI"}?`)) return;
     await fetch(`${WORKER_URL}/api/settings/llm-keys`, {
       method: "DELETE",
@@ -336,6 +340,7 @@ export default function SettingsPage() {
     });
     if (provider === "anthropic") setHasAnthropicKey(false);
     if (provider === "openai") setHasOpenaiKey(false);
+    if (provider === "google_ai") setHasGoogleAiKey(false);
   }
 
   async function handleMcpConnect(e: React.FormEvent) {
@@ -452,7 +457,7 @@ export default function SettingsPage() {
         {/* ── TAB: Tu IA ───────────────────────────────────────── */}
         {settingsTab === "ia" && <>
         {keysSaved && <p className="text-green-400 text-xs">API key guardada</p>}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Anthropic */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
@@ -517,6 +522,40 @@ export default function SettingsPage() {
           ) : (
             <div className="flex justify-end">
               <button onClick={() => handleRemoveLlmKey("openai")} className="text-xs text-red-500 hover:text-red-300">Desconectar</button>
+            </div>
+          )}
+        </div>
+
+        {/* Gemini */}
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${hasGoogleAiKey ? "bg-green-400" : "bg-gray-600"}`} />
+              <h2 className="text-sm font-medium text-white">Gemini</h2>
+            </div>
+            {hasGoogleAiKey && <span className="text-[10px] text-green-400">Conectado</span>}
+          </div>
+          <p className="text-[11px] text-gray-500">Flash 2.0 gratis con tools</p>
+          {!hasGoogleAiKey ? (
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={googleAiKey}
+                onChange={(e) => setGoogleAiKey(e.target.value)}
+                placeholder="AIza..."
+                className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 font-mono"
+              />
+              <button
+                onClick={() => handleSaveLlmKey("google_ai", googleAiKey)}
+                disabled={keysLoading || !googleAiKey.trim()}
+                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg"
+              >
+                {keysLoading ? "..." : "Guardar"}
+              </button>
+            </div>
+          ) : (
+            <div className="flex justify-end">
+              <button onClick={() => handleRemoveLlmKey("google_ai")} className="text-xs text-red-500 hover:text-red-300">Desconectar</button>
             </div>
           )}
         </div>
