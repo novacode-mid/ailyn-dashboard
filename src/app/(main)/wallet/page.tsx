@@ -108,8 +108,8 @@ export default function WalletPage() {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
-          holder_name: fullName,
-          holder_email: email.trim() || undefined,
+          name: fullName,
+          email: email.trim() || undefined,
           thumbnail_url: thumbnailUrl || undefined,
         }),
       });
