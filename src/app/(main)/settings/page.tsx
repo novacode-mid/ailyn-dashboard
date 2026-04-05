@@ -451,21 +451,18 @@ export default function SettingsPage() {
 
         {/* ── TAB: Tu IA ───────────────────────────────────────── */}
         {settingsTab === "ia" && <>
-        <h2 className="text-lg font-bold text-white">Tu IA</h2>
-        <p className="text-gray-500 text-xs -mt-4">Conecta tu propia cuenta de Claude o GPT para potencia ilimitada</p>
-
-        {keysSaved && <p className="text-green-400 text-xs">API key guardada correctamente</p>}
-
+        {keysSaved && <p className="text-green-400 text-xs">API key guardada</p>}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Anthropic */}
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-3">
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${hasAnthropicKey ? "bg-green-400" : "bg-gray-600"}`} />
-              <h2 className="text-sm font-medium text-white">Anthropic (Claude)</h2>
+              <h2 className="text-sm font-medium text-white">Claude</h2>
             </div>
-            {hasAnthropicKey && <span className="text-xs text-green-400">Conectado</span>}
+            {hasAnthropicKey && <span className="text-[10px] text-green-400">Conectado</span>}
           </div>
-          <p className="text-xs text-gray-400">Claude Sonnet con tool_use nativo — la mejor opcion para agentes autonomos.</p>
+          <p className="text-[11px] text-gray-500">Sonnet con tool_use nativo</p>
           {!hasAnthropicKey ? (
             <div className="flex gap-2">
               <input
@@ -491,15 +488,15 @@ export default function SettingsPage() {
         </div>
 
         {/* OpenAI */}
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-3">
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${hasOpenaiKey ? "bg-green-400" : "bg-gray-600"}`} />
-              <h2 className="text-sm font-medium text-white">OpenAI (GPT-4o)</h2>
+              <h2 className="text-sm font-medium text-white">GPT-4o</h2>
             </div>
-            {hasOpenaiKey && <span className="text-xs text-green-400">Conectado</span>}
+            {hasOpenaiKey && <span className="text-[10px] text-green-400">Conectado</span>}
           </div>
-          <p className="text-xs text-gray-400">GPT-4o con function calling — alternativa solida si prefieres OpenAI.</p>
+          <p className="text-[11px] text-gray-500">Function calling de OpenAI</p>
           {!hasOpenaiKey ? (
             <div className="flex gap-2">
               <input
@@ -523,7 +520,7 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
-
+        </div>{/* close grid */}
         </>}
 
         {/* ── TAB: Canales ─────────────────────────────────────── */}
@@ -684,66 +681,70 @@ export default function SettingsPage() {
 
         {/* ── TAB: Integraciones ───────────────────────────────── */}
         {settingsTab === "integraciones" && <>
-        <h2 className="text-lg font-bold text-white">Integraciones</h2>
         {intError && <p className="text-red-400 text-xs">{intError}</p>}
 
-        {INTEGRATIONS_CONFIG.map((config) => {
-          const status = integrations.find((i) => i.provider === config.provider);
-          const isConnected = status?.connected ?? false;
-          const loading = intLoading === config.provider;
-          const form = intForms[config.provider] ?? {};
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-2">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-medium text-white">Servicios</h2>
+            <span className="text-xs text-gray-500">{integrations.filter(i => i.connected).length} conectados</span>
+          </div>
 
-          return (
-            <div key={config.provider} className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-400" : "bg-gray-600"}`} />
-                  <h2 className="text-sm font-medium text-white">{config.name}</h2>
+          {INTEGRATIONS_CONFIG.map((config) => {
+            const status = integrations.find((i) => i.provider === config.provider);
+            const isConnected = status?.connected ?? false;
+            const isExpanded = intLoading === config.provider || (!isConnected && intForms[config.provider]?.["_expanded"]);
+            const loading = intLoading === config.provider;
+            const form = intForms[config.provider] ?? {};
+
+            return (
+              <div key={config.provider} className="bg-gray-800/50 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${isConnected ? "bg-green-400" : "bg-gray-600"}`} />
+                    <span className="text-white text-sm font-medium">{config.name}</span>
+                    <span className="text-gray-600 text-[10px] hidden sm:inline">{config.description.slice(0, 40)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isConnected ? (
+                      <button onClick={() => handleIntegrationDisconnect(config.provider)} disabled={loading} className="text-[10px] text-red-500 hover:text-red-300">
+                        {loading ? "..." : "✕"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => updateIntForm(config.provider, "_expanded", isExpanded ? "" : "1")}
+                        className="text-[10px] text-purple-400 hover:text-purple-300"
+                      >
+                        {isExpanded ? "▲" : "Conectar"}
+                      </button>
+                    )}
+                  </div>
                 </div>
-                {isConnected && (
-                  <span className="text-xs text-green-400">Conectado</span>
+
+                {isExpanded && !isConnected && (
+                  <div className="mt-3 pt-3 border-t border-gray-700/50 space-y-2">
+                    {config.fields.map((field) => (
+                      <input
+                        key={field.key}
+                        type={field.type === "password" ? "password" : "text"}
+                        value={form[field.key] ?? ""}
+                        onChange={(e) => updateIntForm(config.provider, field.key, e.target.value)}
+                        placeholder={field.label}
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 font-mono"
+                      />
+                    ))}
+                    <button
+                      onClick={() => handleIntegrationConnect(config.provider)}
+                      disabled={loading || !form["access_token"]?.trim()}
+                      className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      {loading ? "Conectando..." : `Conectar`}
+                    </button>
+                  </div>
                 )}
               </div>
-
-              <p className="text-xs text-gray-400">{config.description}</p>
-
-              {!isConnected && (
-                <div className="space-y-2">
-                  {config.fields.map((field) => (
-                    <input
-                      key={field.key}
-                      type={field.type === "password" ? "password" : "text"}
-                      value={form[field.key] ?? ""}
-                      onChange={(e) => updateIntForm(config.provider, field.key, e.target.value)}
-                      placeholder={field.label}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 transition-colors font-mono"
-                    />
-                  ))}
-                  <button
-                    onClick={() => handleIntegrationConnect(config.provider)}
-                    disabled={loading || !form["access_token"]?.trim()}
-                    className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-                  >
-                    {loading ? "Conectando..." : `Conectar ${config.name}`}
-                  </button>
-                </div>
-              )}
-
-              {isConnected && (
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => handleIntegrationDisconnect(config.provider)}
-                    disabled={loading}
-                    className="text-xs text-red-500 hover:text-red-300 transition-colors disabled:opacity-50"
-                  >
-                    {loading ? "..." : "Desconectar"}
-                  </button>
-                </div>
-              )}
-            </div>
-          );
+            );
         })}
-
+        </div>
         </>}
 
         {/* ── TAB: MCP ─────────────────────────────────────────── */}
