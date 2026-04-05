@@ -2410,6 +2410,19 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
     return corsResponse(JSON.stringify({ ok: true, total: passes.length, sent }), 200, undefined, request);
   }
 
+  // POST /api/wallet/register-device — registrar tipo de dispositivo al instalar
+  if (request.method === "POST" && pathname === "/api/wallet/register-device") {
+    let body: { serial_number?: string; device_type?: string };
+    try { body = await request.json(); } catch { return corsResponse(JSON.stringify({ error: "Invalid JSON" }), 400, undefined, request); }
+
+    if (body.serial_number && body.device_type) {
+      await env.DB.prepare(
+        `UPDATE wallet_passes SET device_type = ?, installed = 1, installed_at = datetime('now') WHERE serial_number = ?`
+      ).bind(body.device_type, body.serial_number).run();
+    }
+    return corsResponse(JSON.stringify({ ok: true }), 200, undefined, request);
+  }
+
   // ── Wallet Passes endpoints (Admin — X-CF-Token) ─────────────────────────
 
   // POST /api/wallet/create — crear un nuevo pase para un contacto
