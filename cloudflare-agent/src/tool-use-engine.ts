@@ -190,10 +190,20 @@ export async function callWithToolUse(
   history: { role: "user" | "assistant"; content: string }[],
   tools: AnthropicTool[],
   env: Env,
-  companyId: number
+  companyId: number,
+  provider: "anthropic" | "openai" = "anthropic"
 ): Promise<ToolUseResult> {
+  // Route to the right provider
+  if (provider === "openai" && env.OPENAI_API_KEY) {
+    return callWithToolUseOpenAI(systemPrompt, userMessage, history, tools, env, companyId);
+  }
+
   const apiKey = env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
+  if (!apiKey) {
+    // Fallback: try OpenAI if Anthropic not available
+    if (env.OPENAI_API_KEY) return callWithToolUseOpenAI(systemPrompt, userMessage, history, tools, env, companyId);
+    throw new Error("No LLM API key configured (ANTHROPIC_API_KEY or OPENAI_API_KEY)");
+  }
 
   const toolsUsed: string[] = [];
   let emailDraft: ToolUseResult["emailDraft"];
@@ -298,6 +308,124 @@ export async function callWithToolUse(
     text: "He ejecutado varias acciones. ¿Necesitas algo más?",
     toolsUsed,
     model: "claude-sonnet-4-20250514",
+    emailDraft,
+    calendarDraft,
+    followupDraft,
+    noteDraft,
+  };
+}
+
+// ── OpenAI Function Calling (alternativa a Anthropic) ────────────────────
+
+async function callWithToolUseOpenAI(
+  systemPrompt: string,
+  userMessage: string,
+  history: { role: "user" | "assistant"; content: string }[],
+  tools: AnthropicTool[],
+  env: Env,
+  companyId: number
+): Promise<ToolUseResult> {
+  const apiKey = env.OPENAI_API_KEY!;
+
+  const toolsUsed: string[] = [];
+  let emailDraft: ToolUseResult["emailDraft"];
+  let calendarDraft: ToolUseResult["calendarDraft"];
+  let followupDraft: ToolUseResult["followupDraft"];
+  let noteDraft: ToolUseResult["noteDraft"];
+
+  // Convert Anthropic tool format to OpenAI function format
+  const openaiTools = tools.map(t => ({
+    type: "function" as const,
+    function: {
+      name: t.name,
+      description: t.description,
+      parameters: t.input_schema,
+    },
+  }));
+
+  const messages: { role: string; content: string | null; tool_calls?: unknown[]; tool_call_id?: string; name?: string }[] = [
+    { role: "system", content: systemPrompt },
+    ...history.map(m => ({ role: m.role, content: m.content })),
+    { role: "user", content: userMessage },
+  ];
+
+  for (let iteration = 0; iteration < MAX_TOOL_CALLS + 1; iteration++) {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages,
+        tools: openaiTools,
+        max_tokens: 2048,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      console.error(`[tool-use-openai] Error ${res.status}: ${err}`);
+      throw new Error(`OpenAI API error: ${res.status}`);
+    }
+
+    const data = await res.json() as {
+      choices: [{
+        message: {
+          content: string | null;
+          tool_calls?: { id: string; function: { name: string; arguments: string } }[];
+        };
+        finish_reason: string;
+      }];
+    };
+
+    const choice = data.choices[0];
+    const toolCalls = choice.message.tool_calls ?? [];
+
+    // No tool calls — done
+    if (choice.finish_reason === "stop" || toolCalls.length === 0) {
+      return {
+        text: choice.message.content ?? "",
+        toolsUsed,
+        model: "gpt-4o",
+        emailDraft,
+        calendarDraft,
+        followupDraft,
+        noteDraft,
+      };
+    }
+
+    // Add assistant message with tool calls
+    messages.push({ role: "assistant", content: choice.message.content, tool_calls: toolCalls });
+
+    // Execute each tool call
+    for (const tc of toolCalls) {
+      const toolName = tc.function.name;
+      let toolInput: Record<string, unknown> = {};
+      try { toolInput = JSON.parse(tc.function.arguments); } catch { /* */ }
+      toolsUsed.push(toolName);
+
+      console.log(`[tool-use-openai] Calling: ${toolName}`);
+      const result = await executeToolCall(toolName, toolInput, env, companyId, userMessage);
+
+      // Extract drafts
+      try {
+        const parsed = JSON.parse(result);
+        if (parsed.action === "email_draft") emailDraft = parsed;
+        if (parsed.action === "calendar_draft") calendarDraft = parsed;
+        if (parsed.action === "followup_draft") followupDraft = parsed;
+        if (parsed.action === "save_note") noteDraft = parsed;
+      } catch { /* */ }
+
+      messages.push({ role: "tool", content: result, tool_call_id: tc.id, name: toolName });
+    }
+  }
+
+  return {
+    text: "He ejecutado varias acciones. ¿Necesitas algo más?",
+    toolsUsed,
+    model: "gpt-4o",
     emailDraft,
     calendarDraft,
     followupDraft,

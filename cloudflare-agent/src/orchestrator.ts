@@ -548,12 +548,14 @@ export async function orchestrate(
   let toolUseNoteDraft: OrchestratorOutput["noteDraft"];
   let toolUseToolsUsed: string[] = [];
 
-  if (routing.provider === "anthropic" && env.ANTHROPIC_API_KEY) {
-    // ── NUEVO: Anthropic tool_use nativo ──
-    // Sonnet decide que tools usar, nosotros los ejecutamos
+  if ((routing.provider === "anthropic" || routing.provider === "openai") && (env.ANTHROPIC_API_KEY || env.OPENAI_API_KEY)) {
+    // ── Tool_use nativo (Anthropic o OpenAI) ──
+    // El LLM decide que tools usar, nosotros los ejecutamos
+    const llmProvider = (routing.provider === "anthropic" && env.ANTHROPIC_API_KEY) ? "anthropic" as const
+      : (env.OPENAI_API_KEY ? "openai" as const : "anthropic" as const);
     try {
       const toolSchemas = await buildToolSchemas(env, input.companyId, input.connectedProviders ?? []);
-      const result = await callWithToolUse(systemPrompt, cleanMessage, history, toolSchemas, env, input.companyId);
+      const result = await callWithToolUse(systemPrompt, cleanMessage, history, toolSchemas, env, input.companyId, llmProvider);
       responseText = result.text;
       toolUseToolsUsed = result.toolsUsed;
       toolUseEmailDraft = result.emailDraft;
