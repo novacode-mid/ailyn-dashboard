@@ -5,6 +5,8 @@
 import type { Env } from "./types";
 import { route, modelIndicator } from "./llm-smart-router";
 import { CODE_MODE_PROMPT, parseCodeModeResponse, shouldUseCodeMode } from "./code-mode";
+import { buildToolSchemas } from "./tool-registry";
+import { callWithToolUse } from "./tool-use-engine";
 import type { RoutingDecision } from "./llm-smart-router";
 import { executeTools, formatToolResults } from "./tool-executor";
 import type { ExecutionContext } from "./tool-executor";
@@ -540,9 +542,28 @@ export async function orchestrate(
   const history = smartContext.history;
 
   let responseText: string;
+  let toolUseEmailDraft: OrchestratorOutput["emailDraft"];
+  let toolUseCalendarDraft: OrchestratorOutput["calendarDraft"];
+  let toolUseFollowupDraft: OrchestratorOutput["followupDraft"];
+  let toolUseNoteDraft: OrchestratorOutput["noteDraft"];
+  let toolUseToolsUsed: string[] = [];
 
-  if (routing.provider === "anthropic") {
-    responseText = await callAnthropicModel(routing.model, systemPrompt, cleanMessage, history, env);
+  if (routing.provider === "anthropic" && env.ANTHROPIC_API_KEY) {
+    // ── NUEVO: Anthropic tool_use nativo ──
+    // Sonnet decide que tools usar, nosotros los ejecutamos
+    try {
+      const toolSchemas = await buildToolSchemas(env, input.companyId, input.connectedProviders ?? []);
+      const result = await callWithToolUse(systemPrompt, cleanMessage, history, toolSchemas, env, input.companyId);
+      responseText = result.text;
+      toolUseToolsUsed = result.toolsUsed;
+      toolUseEmailDraft = result.emailDraft;
+      toolUseCalendarDraft = result.calendarDraft ? { ...result.calendarDraft, description: result.calendarDraft.description ?? "", attendees: (result.calendarDraft.attendees ?? "").split(",").map(s => s.trim()).filter(Boolean) } : undefined;
+      toolUseFollowupDraft = result.followupDraft;
+      toolUseNoteDraft = result.noteDraft ? { title: result.noteDraft.title, content: "", url: result.noteDraft.url } : undefined;
+    } catch (err) {
+      console.error("[orchestrator] tool_use failed, falling back:", String(err));
+      responseText = await callCloudflareModel("@cf/meta/llama-3.3-70b-instruct-fp8-fast", systemPrompt, cleanMessage, history, env);
+    }
   } else if (routing.provider === "openai") {
     responseText = await callOpenAIModel(routing.model, systemPrompt, cleanMessage, history, env);
   } else {
@@ -844,14 +865,14 @@ export async function orchestrate(
     text: responseText,
     model_used: routing.model,
     complexity: routing.complexity,
-    tools_used: routing.tools_needed,
+    tools_used: toolUseToolsUsed.length > 0 ? toolUseToolsUsed : routing.tools_needed,
     estimated_cost: routing.estimated_cost,
     indicator,
     duration_ms: duration,
-    emailDraft,
-    calendarDraft,
-    followupDraft,
-    noteDraft,
+    emailDraft: toolUseEmailDraft ?? emailDraft,
+    calendarDraft: toolUseCalendarDraft ?? calendarDraft,
+    followupDraft: toolUseFollowupDraft ?? followupDraft,
+    noteDraft: toolUseNoteDraft ?? noteDraft,
     remainingActions: remainingActions.length > 0 ? remainingActions : undefined,
   };
 }
