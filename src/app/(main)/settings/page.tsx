@@ -74,6 +74,14 @@ export default function SettingsPage() {
   const [tgLoading, setTgLoading] = useState(false);
   const [tgError, setTgError] = useState("");
 
+  // ── LLM API Keys state ─────────────────────────────────────────────────
+  const [anthropicKey, setAnthropicKey] = useState("");
+  const [openaiKey, setOpenaiKey] = useState("");
+  const [keysLoading, setKeysLoading] = useState(false);
+  const [keysSaved, setKeysSaved] = useState(false);
+  const [hasAnthropicKey, setHasAnthropicKey] = useState(false);
+  const [hasOpenaiKey, setHasOpenaiKey] = useState(false);
+
   // ── MCP state ──────────────────────────────────────────────────────────
   const [mcpServers, setMcpServers] = useState<{ id: number; url: string; name: string; skills_count: number; is_active: number; last_scan_at: string | null }[]>([]);
   const [mcpSkills, setMcpSkills] = useState<{ id: number; server_id: number; skill_name: string; description: string; is_active: number }[]>([]);
@@ -121,6 +129,15 @@ export default function SettingsPage() {
         setWaPhoneId(data.phone_number_id ?? null);
       })
       .catch(() => setWaConnected(false));
+
+    // LLM API Keys status
+    fetch(`${WORKER_URL}/api/settings/llm-keys`, { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((data: { anthropic: boolean; openai: boolean }) => {
+        setHasAnthropicKey(data.anthropic ?? false);
+        setHasOpenaiKey(data.openai ?? false);
+      })
+      .catch(() => {});
 
     // MCP servers
     fetch(`${WORKER_URL}/api/settings/mcp`, { headers: authHeaders() })
@@ -291,6 +308,36 @@ export default function SettingsPage() {
     setIntForms((prev) => ({ ...prev, [provider]: { ...(prev[provider] ?? {}), [key]: value } }));
   }
 
+  async function handleSaveLlmKey(provider: "anthropic" | "openai", key: string) {
+    if (!key.trim()) return;
+    setKeysLoading(true);
+    try {
+      const res = await fetch(`${WORKER_URL}/api/settings/llm-keys`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ provider, api_key: key.trim() }),
+      });
+      if (res.ok) {
+        if (provider === "anthropic") { setHasAnthropicKey(true); setAnthropicKey(""); }
+        if (provider === "openai") { setHasOpenaiKey(true); setOpenaiKey(""); }
+        setKeysSaved(true);
+        setTimeout(() => setKeysSaved(false), 2000);
+      }
+    } catch { /* */ }
+    finally { setKeysLoading(false); }
+  }
+
+  async function handleRemoveLlmKey(provider: "anthropic" | "openai") {
+    if (!confirm(`¿Remover tu API key de ${provider === "anthropic" ? "Anthropic" : "OpenAI"}?`)) return;
+    await fetch(`${WORKER_URL}/api/settings/llm-keys`, {
+      method: "DELETE",
+      headers: authHeaders(),
+      body: JSON.stringify({ provider }),
+    });
+    if (provider === "anthropic") setHasAnthropicKey(false);
+    if (provider === "openai") setHasOpenaiKey(false);
+  }
+
   async function handleMcpConnect(e: React.FormEvent) {
     e.preventDefault();
     if (!mcpUrl.trim()) return;
@@ -355,6 +402,80 @@ export default function SettingsPage() {
               <span className="text-gray-300">{user?.company_name ?? "—"}</span>
             </div>
           </div>
+        </div>
+
+        {/* ── API Keys de LLM ─────────────────────────────────── */}
+        <h2 className="text-lg font-bold text-white pt-2">Tu IA</h2>
+        <p className="text-gray-500 text-xs -mt-4">Conecta tu propia cuenta de Claude o GPT para potencia ilimitada</p>
+
+        {keysSaved && <p className="text-green-400 text-xs">API key guardada correctamente</p>}
+
+        {/* Anthropic */}
+        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${hasAnthropicKey ? "bg-green-400" : "bg-gray-600"}`} />
+              <h2 className="text-sm font-medium text-white">Anthropic (Claude)</h2>
+            </div>
+            {hasAnthropicKey && <span className="text-xs text-green-400">Conectado</span>}
+          </div>
+          <p className="text-xs text-gray-400">Claude Sonnet con tool_use nativo — la mejor opcion para agentes autonomos.</p>
+          {!hasAnthropicKey ? (
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={anthropicKey}
+                onChange={(e) => setAnthropicKey(e.target.value)}
+                placeholder="sk-ant-api03-..."
+                className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 font-mono"
+              />
+              <button
+                onClick={() => handleSaveLlmKey("anthropic", anthropicKey)}
+                disabled={keysLoading || !anthropicKey.trim()}
+                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg"
+              >
+                {keysLoading ? "..." : "Guardar"}
+              </button>
+            </div>
+          ) : (
+            <div className="flex justify-end">
+              <button onClick={() => handleRemoveLlmKey("anthropic")} className="text-xs text-red-500 hover:text-red-300">Desconectar</button>
+            </div>
+          )}
+        </div>
+
+        {/* OpenAI */}
+        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${hasOpenaiKey ? "bg-green-400" : "bg-gray-600"}`} />
+              <h2 className="text-sm font-medium text-white">OpenAI (GPT-4o)</h2>
+            </div>
+            {hasOpenaiKey && <span className="text-xs text-green-400">Conectado</span>}
+          </div>
+          <p className="text-xs text-gray-400">GPT-4o con function calling — alternativa solida si prefieres OpenAI.</p>
+          {!hasOpenaiKey ? (
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={openaiKey}
+                onChange={(e) => setOpenaiKey(e.target.value)}
+                placeholder="sk-..."
+                className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 font-mono"
+              />
+              <button
+                onClick={() => handleSaveLlmKey("openai", openaiKey)}
+                disabled={keysLoading || !openaiKey.trim()}
+                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg"
+              >
+                {keysLoading ? "..." : "Guardar"}
+              </button>
+            </div>
+          ) : (
+            <div className="flex justify-end">
+              <button onClick={() => handleRemoveLlmKey("openai")} className="text-xs text-red-500 hover:text-red-300">Desconectar</button>
+            </div>
+          )}
         </div>
 
         {/* Conectar Telegram */}

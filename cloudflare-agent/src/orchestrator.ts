@@ -548,14 +548,31 @@ export async function orchestrate(
   let toolUseNoteDraft: OrchestratorOutput["noteDraft"];
   let toolUseToolsUsed: string[] = [];
 
-  if ((routing.provider === "anthropic" || routing.provider === "openai") && (env.ANTHROPIC_API_KEY || env.OPENAI_API_KEY)) {
+  // Check for user's own API keys (BYOK) before using global keys
+  const userAnthropicKey = await env.DB.prepare(
+    `SELECT access_token FROM integrations WHERE company_id = ? AND provider = 'anthropic_key' AND is_active = 1`
+  ).bind(input.companyId).first<{ access_token: string }>().catch(() => null);
+  const userOpenaiKey = await env.DB.prepare(
+    `SELECT access_token FROM integrations WHERE company_id = ? AND provider = 'openai_key' AND is_active = 1`
+  ).bind(input.companyId).first<{ access_token: string }>().catch(() => null);
+
+  // Override env keys with user's own keys if available
+  const effectiveEnv = {
+    ...env,
+    ANTHROPIC_API_KEY: userAnthropicKey?.access_token ?? env.ANTHROPIC_API_KEY,
+    OPENAI_API_KEY: userOpenaiKey?.access_token ?? env.OPENAI_API_KEY,
+  } as Env;
+
+  const hasAnthropicKey = !!(userAnthropicKey?.access_token || env.ANTHROPIC_API_KEY);
+  const hasOpenaiKey = !!(userOpenaiKey?.access_token || env.OPENAI_API_KEY);
+
+  if ((routing.provider === "anthropic" || routing.provider === "openai") && (hasAnthropicKey || hasOpenaiKey)) {
     // ── Tool_use nativo (Anthropic o OpenAI) ──
-    // El LLM decide que tools usar, nosotros los ejecutamos
-    const llmProvider = (routing.provider === "anthropic" && env.ANTHROPIC_API_KEY) ? "anthropic" as const
-      : (env.OPENAI_API_KEY ? "openai" as const : "anthropic" as const);
+    const llmProvider = (routing.provider === "anthropic" && hasAnthropicKey) ? "anthropic" as const
+      : (hasOpenaiKey ? "openai" as const : "anthropic" as const);
     try {
-      const toolSchemas = await buildToolSchemas(env, input.companyId, input.connectedProviders ?? []);
-      const result = await callWithToolUse(systemPrompt, cleanMessage, history, toolSchemas, env, input.companyId, llmProvider);
+      const toolSchemas = await buildToolSchemas(effectiveEnv, input.companyId, input.connectedProviders ?? []);
+      const result = await callWithToolUse(systemPrompt, cleanMessage, history, toolSchemas, effectiveEnv, input.companyId, llmProvider);
       responseText = result.text;
       toolUseToolsUsed = result.toolsUsed;
       toolUseEmailDraft = result.emailDraft;

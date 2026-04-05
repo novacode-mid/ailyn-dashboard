@@ -3268,6 +3268,61 @@ async function handleFetch(env: Env, request: Request, ctx: ExecutionContext): P
     return corsResponse(JSON.stringify({ messages: rows.results ?? [] }), 200, undefined, request);
   }
 
+  // ── LLM API Keys (BYOK) ─────────────────────────────────────────────────
+
+  // GET /api/settings/llm-keys — check which keys are configured
+  if (request.method === "GET" && pathname === "/api/settings/llm-keys") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    const rows = await env.DB.prepare(
+      `SELECT provider FROM integrations WHERE company_id = ? AND provider IN ('anthropic_key', 'openai_key') AND is_active = 1`
+    ).bind(user.company_id).all<{ provider: string }>();
+
+    const providers = new Set((rows.results ?? []).map(r => r.provider));
+    return corsResponse(JSON.stringify({
+      anthropic: providers.has("anthropic_key"),
+      openai: providers.has("openai_key"),
+    }), 200, undefined, request);
+  }
+
+  // POST /api/settings/llm-keys — save an API key
+  if (request.method === "POST" && pathname === "/api/settings/llm-keys") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    let body: { provider?: string; api_key?: string };
+    try { body = await request.json(); } catch { return corsResponse(JSON.stringify({ error: "JSON inválido" }), 400, undefined, request); }
+
+    if (!body.provider || !body.api_key?.trim()) {
+      return corsResponse(JSON.stringify({ error: "provider y api_key requeridos" }), 400, undefined, request);
+    }
+
+    const validProviders = new Set(["anthropic", "openai"]);
+    if (!validProviders.has(body.provider)) {
+      return corsResponse(JSON.stringify({ error: "Provider inválido" }), 400, undefined, request);
+    }
+
+    const storageProvider = `${body.provider}_key`;
+    await saveIntegration(env, user.company_id, storageProvider, body.api_key.trim());
+    return corsResponse(JSON.stringify({ ok: true }), 200, undefined, request);
+  }
+
+  // DELETE /api/settings/llm-keys — remove an API key
+  if (request.method === "DELETE" && pathname === "/api/settings/llm-keys") {
+    const user = await authenticateUser(request, env);
+    if (!user) return corsResponse(JSON.stringify({ error: "No autorizado" }), 401, undefined, request);
+
+    let body: { provider?: string };
+    try { body = await request.json(); } catch { return corsResponse(JSON.stringify({ error: "JSON inválido" }), 400, undefined, request); }
+
+    const storageProvider = `${body.provider}_key`;
+    await env.DB.prepare(
+      `UPDATE integrations SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE company_id = ? AND provider = ?`
+    ).bind(user.company_id, storageProvider).run();
+    return corsResponse(JSON.stringify({ ok: true }), 200, undefined, request);
+  }
+
   // ── Skill Marketplace ───────────────────────────────────────────────────
 
   // GET /api/marketplace — listar skills publicos
