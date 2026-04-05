@@ -125,32 +125,30 @@ export async function loadSmartContext(
   history: { role: "user" | "assistant"; content: string }[];
   summaryContext: string;
 }> {
-  // 1. Cargar últimos mensajes recientes (ventana deslizante)
+  // 1. Cargar historial de ESTA SESION solamente (no de toda la empresa)
+  // Esto evita contaminación entre canales y conversaciones distintas
   const recentRows = await env.DB.prepare(
     `SELECT role, content FROM conversation_history
-     WHERE company_id = ?
+     WHERE session_id = ?
      ORDER BY created_at DESC LIMIT ?`
-  ).bind(companyId, recentLimit).all<{ role: string; content: string }>();
+  ).bind(sessionId, recentLimit).all<{ role: string; content: string }>();
 
-  const allMessages = (recentRows.results ?? []).reverse();
+  const history = (recentRows.results ?? [])
+    .reverse()
+    .map(r => ({
+      role: r.role as "user" | "assistant",
+      // Truncar respuestas del assistant — suficiente para contexto, no para repetir
+      content: r.role === "assistant" ? r.content.slice(0, 150) : r.content,
+    }));
 
-  // Solo incluir las respuestas del assistant como resumen minimo
-  // para que el LLM sepa que ya respondio, pero sin datos que pueda repetir
-  const history = allMessages.map(r => ({
-    role: r.role as "user" | "assistant",
-    content: r.role === "assistant"
-      ? "[Respuesta anterior — no repetir su contenido]"
-      : r.content,
-  }));
-
-  // 2. Buscar resumen existente en KV
-  const summaryKey = `conv_summary:${companyId}`;
+  // 2. Buscar resumen existente en KV (por sesion, no por empresa)
+  const summaryKey = `conv_summary:${sessionId}`;
   let summary = await env.KV.get(summaryKey) ?? "";
 
   // 3. Contar mensajes totales de la sesión
   const countRow = await env.DB.prepare(
-    `SELECT COUNT(*) as total FROM conversation_history WHERE company_id = ?`
-  ).bind(companyId).first<{ total: number }>();
+    `SELECT COUNT(*) as total FROM conversation_history WHERE session_id = ?`
+  ).bind(sessionId).first<{ total: number }>();
   const totalMessages = countRow?.total ?? 0;
 
   // 4. Si hay más de 12 mensajes y no hay resumen reciente, generar uno
@@ -162,9 +160,9 @@ export async function loadSmartContext(
     // Cargar mensajes anteriores (excluyendo los recientes) para resumir
     const olderRows = await env.DB.prepare(
       `SELECT role, content FROM conversation_history
-       WHERE company_id = ?
+       WHERE session_id = ?
        ORDER BY created_at DESC LIMIT 20 OFFSET ?`
-    ).bind(companyId, recentLimit).all<{ role: string; content: string }>();
+    ).bind(sessionId, recentLimit).all<{ role: string; content: string }>();
 
     const olderMessages = (olderRows.results ?? []).reverse();
 
