@@ -25,7 +25,7 @@ import {
 
 const NAV = [
   { href: "/dashboard",      label: "Dashboard",        icon: LayoutDashboard },
-  { href: "/conversations",  label: "Conversaciones",   icon: MessagesSquare },
+  { href: "/conversations",  label: "Inbox",             icon: MessagesSquare },
   { href: "/activity",       label: "Actividad",        icon: Target },
   { href: "/leads",          label: "Leads",            icon: Zap },
   { href: "/knowledge",      label: "Knowledge Base",   icon: BookOpen },
